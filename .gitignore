@@ -143,6 +143,9 @@ Thumbs.db
 # Swiss Ephemeris data (if not committed)
 # se_data/  # Uncomment if you want to exclude ephemeris files
 
+# Swiss Ephemeris source code (not needed, we use pyswisseph)
+swisseph/
+
 # Temporary files
 *.tmp
 *.bak
