@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SECRET_KEY: dev
+      DJANGO_DEBUG: "False"
+      SE_EPHE_PATH: /app/se_data
+    volumes:
+      - ./se_data:/app/se_data:ro
