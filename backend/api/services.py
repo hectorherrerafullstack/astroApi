@@ -49,6 +49,16 @@ HOUSE_SYSTEMS = {
 # Flags para posiciones aparentes geocéntricas con Swiss
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED  # sin TRUEPOS, sin TOPOCTR
 
+# Aspectos con orbes fijos
+ASPECTS = [
+    {"name": "Conjunction", "angle": 0,   "orb": 8},
+    {"name": "Opposition",  "angle": 180, "orb": 8},
+    {"name": "Trine",       "angle": 120, "orb": 7},
+    {"name": "Square",      "angle": 90,  "orb": 6},
+    {"name": "Sextile",     "angle": 60,  "orb": 4},
+    {"name": "Quincunx",    "angle": 150, "orb": 3},
+]
+
 def set_ephe_path(ephe_path: str):
     swe.set_ephe_path(ephe_path)
 
@@ -99,7 +109,7 @@ def compute_planets(jdut1: float, lat: float, lon: float, topo: bool) -> dict:
         lonlat, ret = swe.calc_ut(jdut1, pid, flags)
         lon_ecl = lonlat[0] % 360.0
         results[name] = {
-            "longitude": lon_ecl,
+            "value": lon_ecl,
             "formatted": fmt_zodiac(lon_ecl),
         }
     return results
@@ -120,6 +130,34 @@ def compute_houses(jdut1: float, lat: float, lon: float, house_system: bytes):
         "mc":  {"value": mc,  "formatted": fmt_zodiac(mc)},
         "cusps": [{"house": i+1, "value": h, "formatted": fmt_zodiac(h)} for i, h in enumerate(houses)],
     }
+
+def _norm360(x): 
+    y = x % 360.0
+    return y if y >= 0 else y + 360.0
+
+def angular_sep(a, b):
+    d = abs(_norm360(a) - _norm360(b))
+    return min(d, 360.0 - d)
+
+def compute_aspects(planets):
+    """Cálculo de aspectos con orbes fijos."""
+    names = list(planets.keys())
+    out = []
+    for i in range(len(names)):
+        for j in range(i+1, len(names)):
+            a, b = names[i], names[j]
+            la, lb = planets[a]["value"], planets[b]["value"]
+            sep = angular_sep(la, lb)
+            for asp in ASPECTS:
+                diff = abs(sep - asp["angle"])
+                if diff <= asp["orb"]:
+                    out.append({
+                        "a": a, "b": b,
+                        "aspect": asp["name"],
+                        "angle": round(sep, 4),
+                        "orb": round(diff, 4),
+                    })
+    return out
 
 def compute_chart(payload: dict, ephe_path: str) -> dict:
     """
@@ -154,15 +192,19 @@ def compute_chart(payload: dict, ephe_path: str) -> dict:
         swe.set_topo(lon, lat, 0)
         lonlat, ret = swe.calc_ut(jdut1, swe.MOON, FLAGS | swe.FLG_TOPOCTR)
         moon_topo = lonlat[0] % 360.0
-        planets_geo["moon"] = {"longitude": moon_topo, "formatted": fmt_zodiac(moon_topo)}
+        planets_geo["moon"] = {"value": moon_topo, "formatted": fmt_zodiac(moon_topo)}
 
     # 3) Casas (Asc/MC exactos a Swiss)
     houses = compute_houses(jdut1, lat, lon, hs_code)
+
+    # 4) Aspectos
+    aspects = compute_aspects(planets_geo)
 
     return {
         "jd_ut": jdut1,
         "planets": planets_geo,
         "houses": houses,
+        "aspects": aspects,
         "meta": {
             "ephe_path": ephe_path,
             "flags": int(FLAGS),

@@ -216,10 +216,9 @@ Ver [ejemplos detallados](#uso-de-la-api) arriba.
 
 Este proyecto es software libre. Ver [LICENSE](LICENSE) para detalles.
 
-- **Código fuente**: [https://github.com/tuusuario/astroapi](https://github.com/tuusuario/astroapi)
-- **Swiss Ephemeris**: Producto de Astrodienst AG, usado bajo términos compatibles
 
-Para preguntas: [tu@email.com]
+
+Para preguntas: [info@hectorherrerafullstack.com]
 
 ---
 
