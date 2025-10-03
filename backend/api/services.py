@@ -37,6 +37,7 @@ PLANETS = {
     "pluto": swe.PLUTO,
     "chiron": swe.CHIRON,
     "true_node": swe.TRUE_NODE,
+    "lilith": swe.MEAN_APOG,  # Luna Negra Media (Lilith)
 }
 
 HOUSE_SYSTEMS = {
@@ -91,7 +92,7 @@ def fmt_zodiac(lon):
 
 def compute_planets(jdut1: float, lat: float, lon: float, topo: bool) -> dict:
     """
-    Devuelve longitudes eclípticas aparentes (tropical) de planetas.
+    Devuelve longitudes eclípticas aparentes (tropical) de planetas con info de retrógrado.
     """
     results = {}
     flags = FLAGS
@@ -105,12 +106,21 @@ def compute_planets(jdut1: float, lat: float, lon: float, topo: bool) -> dict:
         swe.set_topo(0, 0, 0)
 
     for name, pid in PLANETS.items():
-        # Nota: TRUE_NODE es el nodo “verdadero”; para “medio”, usa MEAN_NODE
+        # Nota: TRUE_NODE es el nodo "verdadero"; para "medio", usa MEAN_NODE
         lonlat, ret = swe.calc_ut(jdut1, pid, flags)
         lon_ecl = lonlat[0] % 360.0
+        speed = lonlat[3]  # velocidad diaria en longitud
+        is_retrograde = speed < 0
+        
+        formatted = fmt_zodiac(lon_ecl)
+        if is_retrograde:
+            formatted += " ℞"
+        
         results[name] = {
             "value": lon_ecl,
-            "formatted": fmt_zodiac(lon_ecl),
+            "speed": speed,
+            "retrograde": is_retrograde,
+            "formatted": formatted,
         }
     return results
 
@@ -126,7 +136,8 @@ def compute_houses(jdut1: float, lat: float, lon: float, house_system: bytes):
     mc  = ascmc[1] % 360.0
     houses = [(c % 360.0) for c in cusps]  # 12
     return {
-        "asc": {"value": asc, "formatted": fmt_zodiac(asc)},
+        "ascendente": {"value": asc, "formatted": fmt_zodiac(asc)},
+        "asc": {"value": asc, "formatted": fmt_zodiac(asc)},  # alias
         "mc":  {"value": mc,  "formatted": fmt_zodiac(mc)},
         "cusps": [{"house": i+1, "value": h, "formatted": fmt_zodiac(h)} for i, h in enumerate(houses)],
     }
@@ -152,7 +163,8 @@ def compute_aspects(planets):
                 diff = abs(sep - asp["angle"])
                 if diff <= asp["orb"]:
                     out.append({
-                        "a": a, "b": b,
+                        "planet_a": a,
+                        "planet_b": b,
                         "aspect": asp["name"],
                         "angle": round(sep, 4),
                         "orb": round(diff, 4),
@@ -192,7 +204,13 @@ def compute_chart(payload: dict, ephe_path: str) -> dict:
         swe.set_topo(lon, lat, 0)
         lonlat, ret = swe.calc_ut(jdut1, swe.MOON, FLAGS | swe.FLG_TOPOCTR)
         moon_topo = lonlat[0] % 360.0
-        planets_geo["moon"] = {"value": moon_topo, "formatted": fmt_zodiac(moon_topo)}
+        moon_speed = lonlat[3]
+        planets_geo["moon"] = {
+            "value": moon_topo,
+            "speed": moon_speed,
+            "retrograde": moon_speed < 0,
+            "formatted": fmt_zodiac(moon_topo) + (" ℞" if moon_speed < 0 else "")
+        }
 
     # 3) Casas (Asc/MC exactos a Swiss)
     houses = compute_houses(jdut1, lat, lon, hs_code)
