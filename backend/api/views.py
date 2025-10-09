@@ -15,9 +15,11 @@
 
 import os
 import json
+from datetime import datetime
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 from .services import compute_chart
+from .horoscope_service import generate_daily_horoscope_personal, calculate_transits
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
 
@@ -46,6 +48,97 @@ def compute_chart_view(request):
     except Exception as e:
         return HttpResponseBadRequest(f"Calculation error: {str(e)}")
 
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+def daily_horoscope_view(request):
+    """
+    POST /api/horoscope/daily/
+    
+    Payload:
+    {
+        "birth_data": {
+            // Carta natal completa (output de /api/compute/)
+            "planets": {...},
+            "houses": {...}
+        },
+        "target_date": "2025-10-09",  // opcional, default: hoy
+        "timezone": "America/Tegucigalpa"  // opcional, default: UTC
+    }
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("Use POST with JSON payload.")
+    
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON.")
+    
+    # Validar carta natal
+    if "birth_data" not in payload:
+        return HttpResponseBadRequest("Missing 'birth_data' field.")
+    
+    birth_data = payload["birth_data"]
+    if "planets" not in birth_data or "houses" not in birth_data:
+        return HttpResponseBadRequest("birth_data must contain 'planets' and 'houses'.")
+    
+    # Fecha objetivo (default: hoy)
+    target_date_str = payload.get("target_date")
+    if target_date_str:
+        try:
+            target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
+        except ValueError:
+            return HttpResponseBadRequest("Invalid target_date format. Use YYYY-MM-DD.")
+    else:
+        target_date = datetime.now()
+    
+    timezone = payload.get("timezone", "UTC")
+    
+    try:
+        result = generate_daily_horoscope_personal(birth_data, target_date, timezone)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+def transits_view(request):
+    """
+    GET /api/transits/?date=YYYY-MM-DD&timezone=America/Tegucigalpa
+    
+    Retorna posiciones planetarias (tránsitos) para una fecha/hora.
+    Si no se especifica fecha, usa el momento actual.
+    """
+    if request.method != "GET":
+        return HttpResponseBadRequest("Use GET request.")
+    
+    date_str = request.GET.get("date")
+    timezone = request.GET.get("timezone", "UTC")
+    
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
+    else:
+        target_date = datetime.now()
+    
+    try:
+        transits = calculate_transits(target_date, timezone)
+        result = {
+            "date": target_date.strftime("%Y-%m-%d"),
+            "timezone": timezone,
+            "transits": transits
+        }
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
     resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"

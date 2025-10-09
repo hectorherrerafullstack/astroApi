@@ -2,12 +2,25 @@
 
 Backend API para cálculos astrológicos precisos usando Swiss Ephemeris, optimizado para coincidir con Astro.com.
 
+## ⭐ Nuevas Funcionalidades
+
+### 🌟 Horóscopo Diario Personalizado
+Sistema completo de horóscopo diario basado en **tránsitos planetarios** sobre tu carta natal:
+- ✅ Detecta aspectos entre tránsitos y planetas natales (aplicativos/separativos)
+- ✅ Identifica casas natales activadas por tránsitos
+- ✅ Genera interpretaciones personalizadas
+- ✅ Prioriza eventos según velocidad planetaria y exactitud
+
+Ver [Documentación de Horóscopo Diario](HOROSCOPO_DIARIO_API.md)
+
 ## 📋 Tabla de Contenidos
+- [Nuevas Funcionalidades](#-nuevas-funcionalidades)
 - [Cómo Funciona](#cómo-funciona)
 - [Arquitectura](#arquitectura)
 - [Instalación Local](#instalación-local)
 - [Despliegue](#despliegue)
 - [Uso de la API](#uso-de-la-api)
+- [Horóscopo Diario](#horóscopo-diario)
 - [Seguridad y Vulnerabilidades](#seguridad-y-vulnerabilidades)
 - [Licencia](#licencia)
 
@@ -209,6 +222,66 @@ Ver [ejemplos detallados](#uso-de-la-api) arriba.
 - Todas las dependencias están actualizadas y libres de CVEs conocidas
 - pyswisseph es una librería madura y mantenida
 - Recomendación: Ejecutar `safety check` periódicamente
+
+## 🌟 Horóscopo Diario
+
+### Endpoints Disponibles
+
+#### 1. `/api/horoscope/daily/` - Horóscopo Personalizado
+Genera horóscopo diario comparando tránsitos con carta natal.
+
+**Ejemplo:**
+```bash
+POST /api/horoscope/daily/
+{
+  "birth_data": {
+    "planets": { ... },  # Del endpoint /api/compute/
+    "houses": { ... }
+  },
+  "target_date": "2025-10-09",
+  "timezone": "America/Tegucigalpa"
+}
+```
+
+**Respuesta incluye:**
+- Top 5 aspectos más importantes del día
+- Casas natales activadas por tránsitos
+- Interpretación personalizada
+- Consejo del día
+
+#### 2. `/api/transits/` - Posiciones Planetarias Actuales
+```bash
+GET /api/transits/?date=2025-10-09&timezone=America/Tegucigalpa
+```
+
+### Características del Sistema
+
+✅ **Cálculo Preciso de Tránsitos**
+- Usa Swiss Ephemeris (misma precisión que carta natal)
+- Detecta planetas retrógrados en tránsito
+- Considera velocidad planetaria para ponderación
+
+✅ **Detección de Aspectos**
+- Conjunción, Sextil, Cuadratura, Trígono, Oposición
+- Distingue aspectos aplicativos (formándose) vs separativos
+- Orbes optimizados para horóscopos diarios
+
+✅ **Análisis de Casas**
+- Identifica qué casas natales son activadas
+- Prioriza según planetas rápidos (Luna, Mercurio, Venus, Marte)
+- Indica áreas de vida en foco
+
+✅ **Interpretación Automática**
+- Mensajes personalizados según aspectos
+- Consejo diario basado en tono dominante
+- Formato listo para UI
+
+### Ejemplo de Integración
+
+Ver archivos:
+- `HOROSCOPO_DIARIO_API.md` - Documentación completa
+- `ejemplo_cliente_javascript.js` - Cliente JavaScript con ejemplos
+- `test_horoscopo_diario.py` - Script de prueba Python
 
 ## 📄 Licencia
 
