@@ -1,1 +1,1 @@
-cd backend && gunicorn backend.wsgi --bind 0.0.0.0:$PORTweb: gunicorn backend.wsgi --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+web: cd backend && gunicorn backend.wsgi --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
