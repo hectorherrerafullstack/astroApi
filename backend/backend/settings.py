@@ -30,6 +30,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django.middleware.gzip.GZipMiddleware",  # Compresión GZIP (primero)
+    "api.middleware.CORSMiddleware",  # CORS optimizado
+    "api.middleware.PerformanceMiddleware",  # Headers de performance
     "django.middleware.common.CommonMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
@@ -43,3 +46,30 @@ SE_EPHE_PATH = os.environ.get("SE_EPHE_PATH", str(BASE_DIR.parent / "se_data"))
 
 ROOT_URLCONF = "backend.urls"
 WSGI_APPLICATION = "backend.wsgi.application"
+
+# Configuración de Caché para optimización
+# Usa Redis en producción si está disponible, sino caché en memoria
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'astroapi-cache',
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,  # Máximo 1000 entradas en caché
+        }
+    }
+}
+
+# Si Redis está disponible (producción), descomentar:
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#             'SOCKET_CONNECT_TIMEOUT': 5,
+#             'SOCKET_TIMEOUT': 5,
+#             'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+#             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+#         }
+#     }
+# }

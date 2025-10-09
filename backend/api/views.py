@@ -143,3 +143,29 @@ def transits_view(request):
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
     return resp
+
+
+def cache_stats_view(request):
+    """
+    GET /api/cache/stats/
+    
+    Retorna estadísticas de caché y performance.
+    """
+    from .cache_manager import performance_monitor, SmartCache
+    
+    stats = {
+        "performance": performance_monitor.get_report(),
+        "cache": SmartCache.get_cache_stats(),
+        "info": {
+            "cache_backend": "LocMemCache",
+            "compression": "gzip enabled",
+            "ttl_transits": "1 hour",
+            "ttl_horoscope": "6 hours",
+            "ttl_natal": "30 days"
+        }
+    }
+    
+    resp = JsonResponse(stats, json_dumps_params={"ensure_ascii": False, "indent": 2})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp

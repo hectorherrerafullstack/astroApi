@@ -10,6 +10,7 @@ from datetime import datetime, date
 from dateutil import tz
 from pathlib import Path
 import math
+from .cache_manager import cache_transits, cache_daily_horoscope, measure_performance
 
 # Reutilizamos configuración de services.py
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -84,6 +85,8 @@ def to_jd_ut(dt: datetime, tzname: str = "UTC") -> float:
     return jd_ut
 
 
+@cache_transits(ttl=3600)  # Caché de 1 hora para tránsitos
+@measure_performance("calculate_transits")
 def calculate_transits(dt: datetime, tzname: str = "UTC") -> dict:
     """Calcula posiciones planetarias para una fecha/hora (tránsitos)"""
     jd_ut = to_jd_ut(dt, tzname)
@@ -189,6 +192,8 @@ def find_house_for_planet(planet_lon: float, houses_cusps: list) -> int:
     return 1  # fallback
 
 
+@cache_daily_horoscope(ttl=3600 * 6)  # Caché de 6 horas para horóscopos
+@measure_performance("generate_daily_horoscope")
 def generate_daily_horoscope_personal(
     birth_data: dict,
     target_date: datetime = None,
