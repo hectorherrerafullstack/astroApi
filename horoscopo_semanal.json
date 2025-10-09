@@ -1,0 +1,240 @@
+[
+  {
+    "fecha": "2025-10-09",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "uranus",
+        "aspect": "Trígono",
+        "angle": 119.22410911505193,
+        "orb": 0.775890884948069,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "neptune",
+        "aspect": "Trígono",
+        "angle": 118.040848589534,
+        "orb": 1.9591514104660064,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 122.03740719035252,
+        "orb": 2.037407190352525,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-10",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "venus",
+        "aspect": "Trígono",
+        "angle": 121.07520974883911,
+        "orb": 1.0752097488391144,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "mars",
+        "aspect": "Sextil",
+        "angle": 56.53091577497134,
+        "orb": 3.4690842250286593,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 120.56994069255671,
+        "orb": 0.5699406925567132,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-11",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "jupiter",
+        "aspect": "Trígono",
+        "angle": 115.55451717759722,
+        "orb": 4.445482822402781,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "saturn",
+        "aspect": "Trígono",
+        "angle": 121.11364078816632,
+        "orb": 1.1136407881663217,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 119.11610333084761,
+        "orb": 0.8838966691523922,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-12",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 113.7855116069332,
+        "orb": 6.214488393066802,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 117.67609363527833,
+        "orb": 2.3239063647216653,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "venus",
+        "natal_planet": "moon",
+        "aspect": "Trígono",
+        "angle": 123.32207549895298,
+        "orb": 3.3220754989529837,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-13",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 127.82168937102625,
+        "orb": 7.8216893710262525,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "lilith",
+        "aspect": "Trígono",
+        "angle": 116.25018900089776,
+        "orb": 3.7498109991022375,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "venus",
+        "natal_planet": "moon",
+        "aspect": "Trígono",
+        "angle": 124.56208169406807,
+        "orb": 4.56208169406807,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-14",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "moon",
+        "aspect": "Sextil",
+        "angle": 62.67569549797533,
+        "orb": 2.675695497975333,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "mercury",
+        "aspect": "Trígono",
+        "angle": 118.39635043774359,
+        "orb": 1.6036495622564075,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "pluto",
+        "aspect": "Trígono",
+        "angle": 116.46278874499615,
+        "orb": 3.5372112550038537,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  },
+  {
+    "fecha": "2025-10-15",
+    "tono": "🟢 Favorable",
+    "aspectos": [
+      {
+        "transit_planet": "moon",
+        "natal_planet": "sun",
+        "aspect": "Trígono",
+        "angle": 125.79515853730837,
+        "orb": 5.795158537308367,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "moon",
+        "natal_planet": "jupiter",
+        "aspect": "Sextil",
+        "angle": 60.16872781907054,
+        "orb": 0.1687278190705399,
+        "applying": true,
+        "weight": 15
+      },
+      {
+        "transit_planet": "mercury",
+        "natal_planet": "uranus",
+        "aspect": "Sextil",
+        "angle": 63.91209885912275,
+        "orb": 3.91209885912275,
+        "applying": true,
+        "weight": 15
+      }
+    ],
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo."
+  }
+]

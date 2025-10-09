@@ -1,0 +1,34 @@
+[
+  {
+    "usuario_id": "user_001",
+    "nombre": "Juan",
+    "fecha": "2025-10-09",
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo.",
+    "aspectos_count": 5,
+    "top_aspecto": {
+      "transit_planet": "moon",
+      "natal_planet": "venus",
+      "aspect": "Trígono",
+      "angle": 115.5297933177003,
+      "orb": 4.470206682299704,
+      "applying": true,
+      "weight": 15
+    }
+  },
+  {
+    "usuario_id": "user_002",
+    "nombre": "María",
+    "fecha": "2025-10-09",
+    "consejo": "Día favorable para avanzar en tus proyectos. Mantén el foco y confía en el flujo.",
+    "aspectos_count": 5,
+    "top_aspecto": {
+      "transit_planet": "moon",
+      "natal_planet": "sun",
+      "aspect": "Sextil",
+      "angle": 60.32642177744117,
+      "orb": 0.32642177744116907,
+      "applying": true,
+      "weight": 15
+    }
+  }
+]
