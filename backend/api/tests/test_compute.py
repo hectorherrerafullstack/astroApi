@@ -69,3 +69,21 @@ class ComputeAPITest(TestCase):
         print(f"MC: {data['houses']['mc']['formatted']}")
         print(f"Lilith: {data['planets']['lilith']['formatted']} (Retrógrado: {data['planets']['lilith']['retrograde']})")
         print(f"Aspectos encontrados: {len(data['aspects'])}")
+
+
+class MonthlyTransitsTest(TestCase):
+    def test_monthly_transits_october_2025(self):
+        from ..services import get_important_transits
+        transits = get_important_transits(10, 2025)
+        self.assertIsInstance(transits, list)
+        if transits:
+            self.assertIn("date", transits[0])
+            self.assertIn("aspect", transits[0])
+            self.assertIn("planets", transits[0])
+            self.assertIn("is_eclipse", transits[0])
+            # Verificar que el aspecto sea uno de los importantes
+            valid_aspects = ["Conjunción", "Oposición", "Cuadratura", "Trígono", "Sextil", "Eclipse Solar", "Eclipse Lunar"]
+            self.assertIn(transits[0]["aspect"], valid_aspects)
+            # Verificar que planetas estén en español
+            self.assertIsInstance(transits[0]["planets"], list)
+            self.assertEqual(len(transits[0]["planets"]), 2)

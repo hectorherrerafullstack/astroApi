@@ -20,7 +20,7 @@ from pathlib import Path
 
 # Inicialización Swiss Ephemeris (DE431)
 BASE_DIR = Path(__file__).resolve().parents[1]
-swe.set_ephe_path(str(BASE_DIR / "se_data"))  # carpeta con sepl*.se1, semo*.se1
+swe.set_ephe_path(str(BASE_DIR.parent / "se_data"))  # carpeta con sepl*.se1, semo*.se1
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED        # sin TRUEPOS, sin TOPOCTR
 
 # Planetas que calculemos (Swiss IDs)
@@ -38,6 +38,19 @@ PLANETS = {
     "chiron": swe.CHIRON,
     "true_node": swe.TRUE_NODE,
     "lilith": swe.MEAN_APOG,  # Luna Negra Media (Lilith)
+}
+
+PLANET_NAMES_ES = {
+    "sun": "Sol",
+    "moon": "Luna",
+    "mercury": "Mercurio",
+    "venus": "Venus",
+    "mars": "Marte",
+    "jupiter": "Júpiter",
+    "saturn": "Saturno",
+    "uranus": "Urano",
+    "neptune": "Neptuno",
+    "pluto": "Plutón",
 }
 
 HOUSE_SYSTEMS = {
@@ -229,3 +242,83 @@ def compute_chart(payload: dict, ephe_path: str) -> dict:
             "house_system": payload.get("house_system", "placidus"),
         }
     }
+
+
+def get_important_transits(month, year):
+    """Calcula tránsitos importantes del mes: conjunciones, oposiciones, cuadraturas, trígonos, sextiles entre planetas, incluyendo eclipses"""
+    from datetime import datetime, timedelta
+    
+    start_date = datetime(year, month, 1)
+    end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+    
+    transits = []
+    current = start_date
+    while current < end_date:
+        jd = swe.julday(current.year, current.month, current.day)
+        positions = {}
+        for name, pid in PLANETS.items():
+            if name in ["lilith", "chiron"]:  # Excluir lilith y chiron, pero incluir true_node para eclipses
+                continue
+            result = swe.calc_ut(jd, pid, FLAGS)
+            lon = result[0][0]
+            positions[name] = lon % 360
+        
+        # Calcular posición del nodo para eclipses
+        node_result = swe.calc_ut(jd, swe.TRUE_NODE, FLAGS)
+        node_lon = node_result[0][0] % 360
+        
+        # Verificar aspectos entre planetas
+        planet_list = list(positions.keys())
+        for i in range(len(planet_list)):
+            for j in range(i+1, len(planet_list)):
+                p1, p2 = planet_list[i], planet_list[j]
+                diff = abs(positions[p1] - positions[p2]) % 360
+                if diff > 180:
+                    diff = 360 - diff
+                
+                aspect = None
+                if diff < 10:
+                    aspect = "Conjunción"
+                elif abs(diff - 60) < 10:
+                    aspect = "Sextil"
+                elif abs(diff - 90) < 10:
+                    aspect = "Cuadratura"
+                elif abs(diff - 120) < 10:
+                    aspect = "Trígono"
+                elif abs(diff - 180) < 10:
+                    aspect = "Oposición"
+                
+                if aspect:
+                    # Verificar si es eclipse
+                    is_eclipse = False
+                    if {p1, p2} == {"sun", "moon"}:
+                        moon_lon = positions["moon"]
+                        # Para eclipse solar: conjunción y Luna cerca del nodo
+                        if aspect == "Conjunción" and min(abs(moon_lon - node_lon), 360 - abs(moon_lon - node_lon)) < 15:
+                            aspect = "Eclipse Solar"
+                            is_eclipse = True
+                        # Para eclipse lunar: oposición y Luna cerca del nodo opuesto
+                        elif aspect == "Oposición" and min(abs(moon_lon - (node_lon + 180) % 360), 360 - abs(moon_lon - (node_lon + 180) % 360)) < 15:
+                            aspect = "Eclipse Lunar"
+                            is_eclipse = True
+                    
+                    transits.append({
+                        "date": current.strftime("%Y-%m-%d"),
+                        "aspect": aspect,
+                        "planets": [PLANET_NAMES_ES.get(p1, p1), PLANET_NAMES_ES.get(p2, p2)],
+                        "angle": round(diff, 2),
+                        "is_eclipse": is_eclipse
+                    })
+        
+        current += timedelta(days=1)
+    
+    # Eliminar duplicados aproximados (mismo aspecto en días consecutivos)
+    unique_transits = []
+    seen = set()
+    for t in transits:
+        key = (t["aspect"], tuple(sorted(t["planets"])), t["date"][:7])  # mes-año
+        if key not in seen:
+            unique_transits.append(t)
+            seen.add(key)
+    
+    return unique_transits

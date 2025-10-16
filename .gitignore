@@ -149,3 +149,6 @@ swisseph/
 # Temporary files
 *.tmp
 *.bak
+
+# Markdown files
+*.md

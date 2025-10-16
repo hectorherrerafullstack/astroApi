@@ -14,12 +14,13 @@
 # along with astroapi.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.urls import path
-from .views import health, compute_chart_view, daily_horoscope_view, transits_view, cache_stats_view
+from .views import health, compute_chart_view, daily_horoscope_view, transits_view, monthly_transits_view, cache_stats_view
 
 urlpatterns = [
-    path("health/", health),
-    path("compute/", compute_chart_view),
-    path("horoscope/daily/", daily_horoscope_view),
-    path("transits/", transits_view),
-    path("cache/stats/", cache_stats_view),
+    path("health/", health, name="health"),
+    path("compute/", compute_chart_view, name="compute_chart"),
+    path("horoscope/daily/", daily_horoscope_view, name="daily_horoscope"),
+    path("transits/", transits_view, name="transits"),
+    path("monthly-transits/<int:month>/<int:year>/", monthly_transits_view, name="monthly_transits"),
+    path("cache/stats/", cache_stats_view, name="cache_stats"),
 ]

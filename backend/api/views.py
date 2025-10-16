@@ -18,7 +18,7 @@ import json
 from datetime import datetime
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
-from .services import compute_chart
+from .services import compute_chart, get_important_transits
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
@@ -135,6 +135,33 @@ def transits_view(request):
             "date": target_date.strftime("%Y-%m-%d"),
             "timezone": timezone,
             "transits": transits
+        }
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+def monthly_transits_view(request, month, year):
+    """
+    GET /api/monthly-transits/<int:month>/<int:year>/
+    
+    Retorna tránsitos importantes del mes: conjunciones, oposiciones, cuadraturas.
+    """
+    try:
+        month = int(month)
+        year = int(year)
+        if not (1 <= month <= 12) or not (1900 <= year <= 2100):
+            return HttpResponseBadRequest("Invalid month or year.")
+        
+        transits = get_important_transits(month, year)
+        result = {
+            "month": month,
+            "year": year,
+            "important_transits": transits
         }
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

@@ -47,6 +47,13 @@ SE_EPHE_PATH = os.environ.get("SE_EPHE_PATH", str(BASE_DIR.parent / "se_data"))
 ROOT_URLCONF = "backend.urls"
 WSGI_APPLICATION = "backend.wsgi.application"
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
 # Configuración de Caché para optimización
 # Usa Redis en producción si está disponible, sino caché en memoria
 CACHES = {
