@@ -107,7 +107,16 @@ Devuelve una lista de tránsitos importantes del mes que involucran a la Luna, i
 
 ## Notas importantes
 
-1. **Eclipses**: Se detectan automáticamente cuando la Luna está en conjunción/oposición con el Sol y cerca del Nodo Lunar (dentro de 15°).
+1. **Eclipses**: Se detectan automáticamente cuando la Luna Nueva o Llena ocurre cerca de los Nodos Lunares (Nodo Norte o Nodo Sur).
+   
+   **🌑 Eclipse Solar (Luna Nueva cerca de los nodos):**
+   - Ocurre cuando el Sol y la Luna están en conjunción dentro de 15° de distancia del Nodo Lunar.
+   - Si están más cerca (dentro de 10° o menos), el eclipse es total o anular.
+   - Si están más lejos (hasta 15°), se considera parcial o penumbral.
+   
+   **🌕 Eclipse Lunar (Luna Llena cerca de los nodos):**
+   - Se da cuando el Sol y la Luna están en oposición y el eje de esa oposición cae a menos de 12-15° de los nodos.
+   - Cuanto más cerca del nodo esté la Luna llena, más exacto y potente será el eclipse.
 
 2. **Zona horaria**: Para tránsitos diarios, afecta la conversión de fecha local a UTC para cálculos astronómicos precisos.
 

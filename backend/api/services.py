@@ -293,12 +293,12 @@ def get_important_transits(month, year):
                     is_eclipse = False
                     if {p1, p2} == {"sun", "moon"}:
                         moon_lon = positions["moon"]
-                        # Para eclipse solar: conjunción y Luna cerca del nodo
+                        # Eclipse Solar: Luna Nueva (conjunción) dentro de 15° del Nodo Lunar
                         if aspect == "Conjunción" and min(abs(moon_lon - node_lon), 360 - abs(moon_lon - node_lon)) < 15:
                             aspect = "Eclipse Solar"
                             is_eclipse = True
-                        # Para eclipse lunar: oposición y Luna cerca del nodo opuesto
-                        elif aspect == "Oposición" and min(abs(moon_lon - (node_lon + 180) % 360), 360 - abs(moon_lon - (node_lon + 180) % 360)) < 15:
+                        # Eclipse Lunar: Luna Llena (oposición) dentro de 12-15° del Nodo Lunar opuesto
+                        elif aspect == "Oposición" and min(abs(moon_lon - (node_lon + 180) % 360), 360 - abs(moon_lon - (node_lon + 180) % 360)) < 12:
                             aspect = "Eclipse Lunar"
                             is_eclipse = True
                     
