@@ -112,7 +112,7 @@ def transits_view(request):
     """
     GET /api/transits/?date=YYYY-MM-DD&timezone=America/Tegucigalpa
     
-    Retorna posiciones planetarias (tránsitos) para una fecha/hora.
+    Retorna la posición de la Luna (tránsito lunar) para una fecha/hora.
     Si no se especifica fecha, usa el momento actual.
     """
     if request.method != "GET":
@@ -134,7 +134,7 @@ def transits_view(request):
         result = {
             "date": target_date.strftime("%Y-%m-%d"),
             "timezone": timezone,
-            "transits": transits
+            "transits": {"moon": transits["moon"]}
         }
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
