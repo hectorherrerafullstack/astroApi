@@ -245,7 +245,7 @@ def compute_chart(payload: dict, ephe_path: str) -> dict:
 
 
 def get_important_transits(month, year):
-    """Calcula tránsitos importantes del mes: conjunciones, oposiciones, cuadraturas, trígonos, sextiles entre planetas, incluyendo eclipses"""
+    """Calcula tránsitos importantes del mes enfocados en la Luna: aspectos lunares y eclipses solares/lunares"""
     from datetime import datetime, timedelta
     
     start_date = datetime(year, month, 1)
@@ -312,10 +312,13 @@ def get_important_transits(month, year):
         
         current += timedelta(days=1)
     
+    # Filtrar solo tránsitos lunares (que involucran a la Luna) y eclipses
+    lunar_transits = [t for t in transits if "Luna" in t["planets"]]
+    
     # Eliminar duplicados aproximados (mismo aspecto en días consecutivos)
     unique_transits = []
     seen = set()
-    for t in transits:
+    for t in lunar_transits:
         key = (t["aspect"], tuple(sorted(t["planets"])), t["date"][:7])  # mes-año
         if key not in seen:
             unique_transits.append(t)
