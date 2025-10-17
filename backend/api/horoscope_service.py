@@ -105,6 +105,32 @@ def calculate_transits(dt: datetime, tzname: str = "UTC") -> dict:
             "degree_in_sign": lon % 30
         }
     
+    # Calcular fase lunar
+    if "sun" in transits and "moon" in transits:
+        sun_lon = transits["sun"]["longitude"]
+        moon_lon = transits["moon"]["longitude"]
+        angle = (moon_lon - sun_lon) % 360
+        
+        if angle < 45:
+            phase = "Luna Nueva"
+        elif angle < 90:
+            phase = "Creciente Menguante"
+        elif angle < 135:
+            phase = "Cuarto Creciente"
+        elif angle < 180:
+            phase = "Creciente Gibosa"
+        elif angle < 225:
+            phase = "Luna Llena"
+        elif angle < 270:
+            phase = "Menguante Gibosa"
+        elif angle < 315:
+            phase = "Cuarto Menguante"
+        else:
+            phase = "Menguante Creciente"
+        
+        transits["moon"]["phase"] = phase
+        transits["moon"]["phase_angle"] = angle
+    
     return transits
 
 

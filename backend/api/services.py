@@ -298,7 +298,7 @@ def get_important_transits(month, year):
                             aspect = "Eclipse Solar"
                             is_eclipse = True
                         # Eclipse Lunar: Luna Llena (oposición) dentro de 12-15° del Nodo Lunar opuesto
-                        elif aspect == "Oposición" and min(abs(moon_lon - (node_lon + 180) % 360), 360 - abs(moon_lon - (node_lon + 180) % 360)) < 12:
+                        elif aspect == "Oposición" and min(abs(moon_lon - (node_lon + 180) % 360), 360 - abs(moon_lon - (node_lon + 180) % 360)) < 15:
                             aspect = "Eclipse Lunar"
                             is_eclipse = True
                     
@@ -325,3 +325,24 @@ def get_important_transits(month, year):
             seen.add(key)
     
     return unique_transits
+
+def get_lunar_phase(sun_lon: float, moon_lon: float) -> str:
+    """Calcula la fase lunar basada en la separación angular Sol-Luna"""
+    angle = (moon_lon - sun_lon) % 360
+    
+    if angle < 45:
+        return "Luna Nueva"
+    elif angle < 90:
+        return "Creciente Menguante"  # Waxing Crescent
+    elif angle < 135:
+        return "Cuarto Creciente"  # First Quarter
+    elif angle < 180:
+        return "Creciente Gibosa"  # Waxing Gibbous
+    elif angle < 225:
+        return "Luna Llena"
+    elif angle < 270:
+        return "Menguante Gibosa"  # Waning Gibbous
+    elif angle < 315:
+        return "Cuarto Menguante"  # Last Quarter
+    else:
+        return "Menguante Creciente"  # Waning Crescent

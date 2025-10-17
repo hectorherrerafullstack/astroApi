@@ -23,7 +23,7 @@ curl -X GET "http://localhost:8000/api/transits/?date=2025-10-17&timezone=Americ
 ```
 
 ### Respuesta
-La API devuelve la posición actual de la Luna en el zodíaco.
+La API devuelve la posición actual de la Luna en el zodíaco, incluyendo su fase lunar.
 
 ```json
 {
@@ -31,22 +31,31 @@ La API devuelve la posición actual de la Luna en el zodíaco.
   "timezone": "America/Tegucigalpa",
   "transits": {
     "moon": {
-      "longitude": 123.45,
+      "longitude": 156.45,
       "speed": 12.34,
-      "sign": "Leo",
-      "sign_index": 4,
-      "degree_in_sign": 3.45
+      "sign": "Virgo",
+      "sign_index": 5,
+      "degree_in_sign": 6.45,
+      "phase": "Creciente Gibosa",
+      "phase_angle": 135.67
     }
   }
 }
 ```
 
-**Campos de respuesta:**
-- `longitude`: Longitud zodiacal en grados (0-360°)
-- `speed`: Velocidad de movimiento en grados/día
-- `sign`: Signo zodiacal en español
-- `sign_index`: Índice del signo (0=Aries, 1=Tauro, etc.)
-- `degree_in_sign`: Grados dentro del signo (0-29.99°)
+**Campos adicionales para la Luna:**
+- `phase`: Nombre de la fase lunar en español
+- `phase_angle`: Ángulo de separación con el Sol en grados (0-360°)
+
+**Fases lunares:**
+- Luna Nueva (0-45°)
+- Creciente Menguante (45-90°)
+- Cuarto Creciente (90-135°)
+- Creciente Gibosa (135-180°)
+- Luna Llena (180-225°)
+- Menguante Gibosa (225-270°)
+- Cuarto Menguante (270-315°)
+- Menguante Creciente (315-360°)
 
 ## 2. Tránsitos Lunares Mensuales y Eclipses
 
