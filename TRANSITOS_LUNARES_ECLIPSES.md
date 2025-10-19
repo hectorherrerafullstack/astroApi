@@ -1,6 +1,6 @@
-# Tránsitos Lunares y Eclipses - Guía de API
+# Posición Lunar Diaria y Mensual - Guía de API
 
-Esta guía explica cómo obtener información sobre tránsitos lunares diarios y eclipses solares/lunares mensuales usando la API de AstroAPI.
+Esta guía explica cómo obtener la posición de la Luna (signo, fase) diaria y mensual usando la API de AstroAPI.
 
 ## 1. Tránsitos Lunares Diarios
 
@@ -29,17 +29,13 @@ La API devuelve la posición actual de la Luna en el zodíaco, incluyendo su fas
 {
   "date": "2025-10-17",
   "timezone": "America/Tegucigalpa",
-  "transits": {
-    "moon": {
-      "longitude": 156.45,
-      "speed": 12.34,
-      "sign": "Virgo",
-      "sign_index": 5,
-      "degree_in_sign": 6.45,
-      "phase": "Creciente Gibosa",
-      "phase_angle": 135.67
-    }
-  }
+  "longitude": 156.45,
+  "speed": 12.34,
+  "sign": "Virgo",
+  "sign_index": 5,
+  "degree_in_sign": 6.45,
+  "phase": "Creciente Gibosa",
+  "phase_angle": 135.67
 }
 ```
 
@@ -57,7 +53,7 @@ La API devuelve la posición actual de la Luna en el zodíaco, incluyendo su fas
 - Cuarto Menguante (270-315°)
 - Menguante Creciente (315-360°)
 
-## 2. Tránsitos Lunares Mensuales y Eclipses
+## 2. Posición Lunar Mensual
 
 ### Endpoint
 ```
@@ -70,70 +66,61 @@ GET /api/monthly-transits/{month}/{year}/
 
 ### Ejemplo de petición
 ```bash
-# Tránsitos y eclipses de octubre 2025
+# Posición lunar de octubre 2025
 curl -X GET "http://localhost:8000/api/monthly-transits/10/2025/"
 ```
 
 ### Respuesta
-Devuelve una lista de tránsitos importantes del mes que involucran a la Luna, incluyendo eclipses solares y lunares.
+Devuelve la posición de la Luna para cada día del mes.
 
 ```json
 {
   "month": 10,
   "year": 2025,
-  "important_transits": [
+  "daily_moon": [
     {
-      "date": "2025-10-14",
-      "aspect": "Eclipse Solar",
-      "planets": ["Sol", "Luna"],
-      "angle": 0.5,
-      "is_eclipse": true
+      "date": "2025-10-01",
+      "longitude": 156.45,
+      "speed": 12.34,
+      "sign": "Virgo",
+      "sign_index": 5,
+      "degree_in_sign": 6.45,
+      "phase": "Creciente Gibosa",
+      "phase_angle": 135.67
     },
     {
-      "date": "2025-10-20",
-      "aspect": "Cuadratura",
-      "planets": ["Luna", "Marte"],
-      "angle": 89.8,
-      "is_eclipse": false
-    },
-    {
-      "date": "2025-10-28",
-      "aspect": "Eclipse Lunar",
-      "planets": ["Sol", "Luna"],
-      "angle": 179.2,
-      "is_eclipse": true
+      "date": "2025-10-02",
+      "longitude": 167.12,
+      "speed": 12.56,
+      "sign": "Virgo",
+      "sign_index": 5,
+      "degree_in_sign": 17.12,
+      "phase": "Creciente Gibosa",
+      "phase_angle": 146.34
     }
   ]
 }
 ```
 
 **Campos de respuesta:**
-- `date`: Fecha del tránsito
-- `aspect`: Tipo de aspecto ("Eclipse Solar", "Eclipse Lunar", "Conjunción", "Oposición", "Cuadratura", etc.)
-- `planets`: Planetas involucrados (siempre incluye "Luna")
-- `angle`: Ángulo exacto del aspecto en grados
-- `is_eclipse`: `true` si es un eclipse, `false` si es un tránsito lunar normal
+- `date`: Fecha del día
+- `longitude`: Longitud eclíptica de la Luna en grados
+- `speed`: Velocidad de la Luna en grados/día
+- `sign`: Signo zodiacal en español
+- `sign_index`: Índice del signo (0-11)
+- `degree_in_sign`: Grados dentro del signo
+- `phase`: Fase lunar en español
+- `phase_angle`: Ángulo de separación con el Sol en grados (0-360°)
 
 ## Notas importantes
 
-1. **Eclipses**: Se detectan automáticamente cuando la Luna Nueva o Llena ocurre cerca de los Nodos Lunares (Nodo Norte o Nodo Sur).
-   
-   **🌑 Eclipse Solar (Luna Nueva cerca de los nodos):**
-   - Ocurre cuando el Sol y la Luna están en conjunción dentro de 15° de distancia del Nodo Lunar.
-   - Si están más cerca (dentro de 10° o menos), el eclipse es total o anular.
-   - Si están más lejos (hasta 15°), se considera parcial o penumbral.
-   
-   **🌕 Eclipse Lunar (Luna Llena cerca de los nodos):**
-   - Se da cuando el Sol y la Luna están en oposición y el eje de esa oposición cae a menos de 12-15° de los nodos.
-   - Cuanto más cerca del nodo esté la Luna llena, más exacto y potente será el eclipse.
+1. **Zona horaria**: Para tránsitos diarios, afecta la conversión de fecha local a UTC para cálculos astronómicos precisos.
 
-2. **Zona horaria**: Para tránsitos diarios, afecta la conversión de fecha local a UTC para cálculos astronómicos precisos.
+2. **Precisión**: Los cálculos usan ephemeris Swiss Ephemeris DE431 para máxima precisión astronómica.
 
-3. **Precisión**: Los cálculos usan ephemeris Swiss Ephemeris DE431 para máxima precisión astronómica.
+3. **Caché**: Las respuestas se cachean para mejorar rendimiento (1 hora para tránsitos diarios).
 
-4. **Caché**: Las respuestas se cachean para mejorar rendimiento (1 hora para tránsitos diarios).
-
-5. **Errores**: Si hay un error, la respuesta incluirá un campo `error` con la descripción del problema.
+4. **Errores**: Si hay un error, la respuesta incluirá un campo `error` con la descripción del problema.
 
 ## Ejemplos prácticos
 
@@ -142,12 +129,12 @@ Devuelve una lista de tránsitos importantes del mes que involucran a la Luna, i
 curl -X GET "http://localhost:8000/api/transits/" | jq .
 ```
 
-### Buscar eclipses en noviembre 2025
+### Obtener posición lunar mensual
 ```bash
 curl -X GET "http://localhost:8000/api/monthly-transits/11/2025/" | jq .
 ```
 
-### Verificar si hay eclipse lunar hoy
+### Verificar posición lunar hoy
 ```bash
 curl -X GET "http://localhost:8000/api/transits/?date=$(date +%Y-%m-%d)" | jq .
 ```</content>

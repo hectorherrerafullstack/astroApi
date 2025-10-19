@@ -131,10 +131,11 @@ def transits_view(request):
     
     try:
         transits = calculate_transits(target_date, timezone)
+        moon_data = transits["moon"]
         result = {
             "date": target_date.strftime("%Y-%m-%d"),
             "timezone": timezone,
-            "transits": {"moon": transits["moon"]}
+            **moon_data
         }
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -149,7 +150,7 @@ def monthly_transits_view(request, month, year):
     """
     GET /api/monthly-transits/<int:month>/<int:year>/
     
-    Retorna tránsitos importantes del mes: conjunciones, oposiciones, cuadraturas.
+    Retorna la posición de la Luna para cada día del mes.
     """
     try:
         month = int(month)
@@ -157,11 +158,25 @@ def monthly_transits_view(request, month, year):
         if not (1 <= month <= 12) or not (1900 <= year <= 2100):
             return HttpResponseBadRequest("Invalid month or year.")
         
-        transits = get_important_transits(month, year)
+        from calendar import monthrange
+        days_in_month = monthrange(year, month)[1]
+        daily_moon = []
+        for day in range(1, days_in_month + 1):
+            sample_date = datetime(year=year, month=month, day=day)
+            try:
+                moon_transits = calculate_transits(sample_date, "UTC")
+                moon_data = moon_transits.get("moon", {})
+                daily_moon.append({
+                    "date": sample_date.strftime("%Y-%m-%d"),
+                    **moon_data
+                })
+            except Exception:
+                pass
+        
         result = {
             "month": month,
             "year": year,
-            "important_transits": transits
+            "daily_moon": daily_moon
         }
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
