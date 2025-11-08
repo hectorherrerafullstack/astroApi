@@ -19,7 +19,7 @@ from datetime import datetime
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 from .services import compute_chart, get_important_transits
-from .horoscope_service import generate_daily_horoscope_personal, calculate_transits
+from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
 
@@ -208,6 +208,76 @@ def cache_stats_view(request):
     }
     
     resp = JsonResponse(stats, json_dumps_params={"ensure_ascii": False, "indent": 2})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+def sun_transit_daily_view(request):
+    """
+    GET /api/sun-transit/?date=YYYY-MM-DD&timezone=America/Tegucigalpa&houses_cusps=1,2,3,...,12
+    
+    Retorna el signo y la casa del Sol de forma directa y simplificada.
+    
+    Parámetros:
+        - date: fecha en formato YYYY-MM-DD (opcional, default: hoy)
+        - timezone: zona horaria (opcional, default: UTC)
+        - houses_cusps: cúspides de las casas separadas por comas (opcional)
+    
+    Retorna:
+        {
+            "sign": "Escorpio",
+            "house": 9  // null si no se proporcionan las cúspides
+        }
+    """
+    if request.method != "GET":
+        return HttpResponseBadRequest("Use GET request.")
+    
+    # Obtener parámetros
+    date_str = request.GET.get("date")
+    timezone = request.GET.get("timezone", "UTC")
+    houses_cusps_str = request.GET.get("houses_cusps")
+    
+    # Parsear fecha
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
+    else:
+        target_date = datetime.now()
+    
+    # Parsear cúspides de casas si se proporcionan
+    houses_cusps = None
+    if houses_cusps_str:
+        try:
+            houses_cusps = [float(x.strip()) for x in houses_cusps_str.split(",")]
+            if len(houses_cusps) != 12:
+                return HttpResponseBadRequest("Must provide exactly 12 house cusps.")
+        except ValueError:
+            return HttpResponseBadRequest("Invalid houses_cusps format. Use comma-separated numbers.")
+    
+    try:
+        # Calcular tránsitos
+        transits = calculate_transits(target_date, timezone)
+        sun_data = transits.get("sun", {})
+        
+        # Respuesta simplificada: solo signo y casa
+        result = {
+            "sign": sun_data.get("sign"),
+        }
+        
+        # Agregar información de casa si se proporcionan las cúspides
+        if houses_cusps:
+            house_num = find_house_for_planet(sun_data.get("longitude", 0), houses_cusps)
+            result["house"] = house_num
+        else:
+            result["house"] = None
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
     return resp
