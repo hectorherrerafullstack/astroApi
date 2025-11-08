@@ -215,64 +215,76 @@ def cache_stats_view(request):
 
 def sun_transit_daily_view(request):
     """
-    GET /api/sun-transit/?date=YYYY-MM-DD&timezone=America/Tegucigalpa&houses_cusps=1,2,3,...,12
+    GET /api/sun-transit/?birth_datetime=YYYY-MM-DDTHH:MM&latitude=XX.XX&longitude=XX.XX
     
-    Retorna el signo y la casa del Sol de forma directa y simplificada.
+    Retorna el signo y la casa del Sol HOY en tu carta natal.
     
-    Parámetros:
-        - date: fecha en formato YYYY-MM-DD (opcional, default: hoy)
-        - timezone: zona horaria (opcional, default: UTC)
-        - houses_cusps: cúspides de las casas separadas por comas (opcional)
+    Parámetros REQUERIDOS:
+        - birth_datetime: Fecha y hora de nacimiento (YYYY-MM-DDTHH:MM)
+        - latitude: Latitud de nacimiento
+        - longitude: Longitud de nacimiento
     
     Retorna:
         {
             "sign": "Escorpio",
-            "house": 9  // null si no se proporcionan las cúspides
+            "degree": 15.45,
+            "house": 7
         }
     """
     if request.method != "GET":
         return HttpResponseBadRequest("Use GET request.")
     
-    # Obtener parámetros
-    date_str = request.GET.get("date")
-    timezone = request.GET.get("timezone", "UTC")
-    houses_cusps_str = request.GET.get("houses_cusps")
+    # Obtener parámetros de nacimiento (REQUERIDOS)
+    birth_datetime_str = request.GET.get("birth_datetime")
+    latitude_str = request.GET.get("latitude")
+    longitude_str = request.GET.get("longitude")
     
-    # Parsear fecha
-    if date_str:
-        try:
-            target_date = datetime.strptime(date_str, "%Y-%m-%d")
-        except ValueError:
-            return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
-    else:
-        target_date = datetime.now()
+    if not all([birth_datetime_str, latitude_str, longitude_str]):
+        return HttpResponseBadRequest(
+            "Missing required parameters. Need: birth_datetime, latitude, longitude"
+        )
     
-    # Parsear cúspides de casas si se proporcionan
-    houses_cusps = None
-    if houses_cusps_str:
-        try:
-            houses_cusps = [float(x.strip()) for x in houses_cusps_str.split(",")]
-            if len(houses_cusps) != 12:
-                return HttpResponseBadRequest("Must provide exactly 12 house cusps.")
-        except ValueError:
-            return HttpResponseBadRequest("Invalid houses_cusps format. Use comma-separated numbers.")
+    # Validar y parsear datos de nacimiento
+    try:
+        birth_datetime = datetime.strptime(birth_datetime_str, "%Y-%m-%dT%H:%M")
+        latitude = float(latitude_str)
+        longitude = float(longitude_str)
+    except ValueError as e:
+        return HttpResponseBadRequest(f"Invalid parameter format: {str(e)}")
+    
+    # Usar valores fijos para el tránsito
+    target_date = datetime.now()
+    timezone = "UTC"
+    house_system = "P"
     
     try:
-        # Calcular tránsitos
+        # 1. Calcular la carta natal para obtener las cúspides de las casas
+        natal_data = {
+            "datetime": birth_datetime.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timezone": timezone,
+            "latitude": latitude,
+            "longitude": longitude,
+            "house_system": house_system,
+            "topocentric_moon_only": False
+        }
+        natal_chart = compute_chart(natal_data, settings.SE_EPHE_PATH)
+        cusps_data = natal_chart.get("houses", {}).get("cusps", [])
+        # Extraer solo los valores numéricos de las cúspides
+        houses_cusps = [c.get("value") for c in cusps_data]
+        
+        # 2. Calcular el tránsito del Sol HOY
         transits = calculate_transits(target_date, timezone)
         sun_data = transits.get("sun", {})
         
-        # Respuesta simplificada: solo signo y casa
+        # 3. Encontrar en qué casa está el Sol
+        house_num = find_house_for_planet(sun_data.get("longitude", 0), houses_cusps)
+        
+        # Respuesta simplificada
         result = {
             "sign": sun_data.get("sign"),
+            "degree": sun_data.get("degree_in_sign"),
+            "house": house_num
         }
-        
-        # Agregar información de casa si se proporcionan las cúspides
-        if houses_cusps:
-            house_num = find_house_for_planet(sun_data.get("longitude", 0), houses_cusps)
-            result["house"] = house_num
-        else:
-            result["house"] = None
         
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
