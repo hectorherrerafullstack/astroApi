@@ -18,6 +18,8 @@ import json
 from datetime import datetime
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from .services import compute_chart, get_important_transits
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet
 
@@ -213,6 +215,8 @@ def cache_stats_view(request):
     return resp
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def sun_transit_daily_view(request):
     """
     GET /api/sun-transit/?birth_datetime=YYYY-MM-DDTHH:MM&latitude=XX.XX&longitude=XX.XX
