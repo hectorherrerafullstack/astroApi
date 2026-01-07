@@ -22,6 +22,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .services import compute_chart, get_important_transits
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet
+from .weekly_climate_service import calculate_weekly_climate
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
 
@@ -290,6 +291,46 @@ def sun_transit_daily_view(request):
             "house": house_num
         }
         
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def weekly_climate_view(request):
+    """
+    GET /api/weekly-climate/
+    GET /api/weekly-climate/?start_date=2026-01-05
+    
+    Retorna los datos del clima astral semanal:
+    - Fase lunar principal
+    - Cambios de signo (Mercurio/Venus/Marte)
+    - Cambios retro/directo
+    - Aspectos fuertes priorizados (máx. 4)
+    - Posiciones planetarias
+    """
+    from datetime import date
+    
+    # Parámetro opcional: start_date
+    start_date_str = request.GET.get("start_date")
+    
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return HttpResponseBadRequest(
+                "Invalid start_date format. Use YYYY-MM-DD."
+            )
+    else:
+        start_date = None  # Usará la semana actual
+    
+    try:
+        result = calculate_weekly_climate(start_date)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
     
