@@ -21,7 +21,8 @@ from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .services import compute_chart, get_important_transits
-from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet
+from .weekly_climate_service import calculate_weekly_climate
+from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data
 from .weekly_climate_service import calculate_weekly_climate
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
@@ -331,6 +332,40 @@ def weekly_climate_view(request):
     
     try:
         result = calculate_weekly_climate(start_date)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def daily_planetary_positions_view(request):
+    """
+    GET /api/daily-positions/?date=YYYY-MM-DD&timezone=UTC
+    
+    Retorna posiciones planetarias y aspectos mundanos para el día.
+    No requiere carta natal.
+    """
+    if request.method != "GET":
+        return HttpResponseBadRequest("Use GET request.")
+    
+    date_str = request.GET.get("date")
+    timezone = request.GET.get("timezone", "UTC")
+    
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
+    else:
+        target_date = datetime.now()
+    
+    try:
+        result = get_daily_planetary_data(target_date, timezone)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
     

@@ -192,6 +192,97 @@ def find_aspects_to_natal(transits: dict, natal_planets: dict) -> list:
     return sorted(aspects, key=lambda x: x["weight"], reverse=True)
 
 
+def find_mundane_aspects(transits: dict) -> list:
+    """
+    Encuentra aspectos entre planetas en tránsito (aspectos mundanos).
+    
+    Args:
+        transits: dict con planetas en tránsito
+    
+    Returns:
+        lista de aspectos encontrados entre los planetas
+    """
+    aspects = []
+    planet_names = list(transits.keys())
+    
+    # Orden definido para evitar duplicados (A-B vs B-A) y pares (A-A)
+    # Iteramos por índices
+    for i in range(len(planet_names)):
+        p1_name = planet_names[i]
+        p1_data = transits[p1_name]
+        
+        for j in range(i + 1, len(planet_names)):
+            p2_name = planet_names[j]
+            p2_data = transits[p2_name]
+            
+            # Calcular distancia
+            distance = angular_distance(
+                p1_data["longitude"],
+                p2_data["longitude"]
+            )
+            
+            # Determinar si alguno es rápido (para orbes)
+            is_fast = (p1_name in FAST_PLANETS) or (p2_name in FAST_PLANETS)
+            
+            for asp_config in ASPECTS_CONFIG:
+                orb = asp_config["orb_fast"] if is_fast else asp_config["orb_slow"]
+                diff = abs(distance - asp_config["angle"])
+                
+                if diff <= orb:
+                    # Aplicativo/Separativo
+                    # Aproximación simple: mirar velocidades relativas
+                    # Si el más rápido se acerca al ángulo exacto
+                    
+                    aspects.append({
+                        "planet_1": p1_name,
+                        "planet_2": p2_name,
+                        "aspect": asp_config["name"],
+                        "angle": distance,
+                        "orb": diff,
+                        # "applying": ... (lógica compleja, se puede omitir o simplificar)
+                    })
+    
+    return aspects
+
+
+def get_daily_planetary_data(target_date: datetime, timezone: str = "UTC") -> dict:
+    """
+    Obtiene datos diarios globales (posiciones planetarias y aspectos del día),
+    sin referencia a una carta natal personal.
+    """
+    transits = calculate_transits(target_date, timezone)
+    aspects = find_mundane_aspects(transits)
+    
+    # Formatear la salida para el frontend
+    
+    # 1. Lista de planetas formateada
+    planets_formatted = []
+    for name, data in transits.items():
+        planets_formatted.append({
+            "name": name,
+            "sign": data["sign"],
+            "degree": float(f"{data['degree_in_sign']:.2f}"),  # redondear
+            "retrograde": data["speed"] < 0,
+            "longitude": float(f"{data['longitude']:.2f}")
+        })
+    
+    # 2. Lista de aspectos formateada
+    aspects_formatted = []
+    for asp in aspects:
+        aspects_formatted.append({
+            "planet_1": asp["planet_1"],
+            "planet_2": asp["planet_2"],
+            "aspect": asp["aspect"],
+            "orb": float(f"{asp['orb']:.2f}")
+        })
+
+    return {
+        "date": target_date.strftime("%Y-%m-%d"),
+        "planets": planets_formatted,
+        "aspects": aspects_formatted
+    }
+
+
 def find_house_for_planet(planet_lon: float, houses_cusps: list) -> int:
     """
     Encuentra en qué casa está un planeta según las cúspides.
