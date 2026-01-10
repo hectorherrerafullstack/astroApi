@@ -513,6 +513,32 @@ def detect_moon_sign_changes(monday: date, sunday: date) -> list:
         current_sign_index = pos["sign_index"]
         
         if current_sign_index != prev_sign_index:
+            # Calcular fase lunar en este momento
+            sun_pos = get_planet_position(jd_ut, swe.SUN)
+            if sun_pos.get("error"):
+                 phase_name = "Desconocida"
+            else:
+                angle = (pos["longitude"] - sun_pos["longitude"]) % 360
+                
+                # Determinar nombre de fase
+                phase_name = ""
+                # Primero chequear fases principales (exactas)
+                for p_data in MAIN_LUNAR_PHASES.values():
+                    if p_data["angle_min"] <= angle <= p_data["angle_max"]:
+                        phase_name = p_data["name"]
+                        break
+                
+                # Si no es fase principal, usar cuadrantes
+                if not phase_name:
+                    if angle < 90:
+                        phase_name = "Luna Creciente"
+                    elif angle < 180:
+                        phase_name = "Luna Gibosa Creciente"
+                    elif angle < 270:
+                        phase_name = "Luna Gibosa Menguante"
+                    else:
+                        phase_name = "Luna Menguante"
+
             # Hubo cambio de signo
             moon_changes.append({
                 "date": next_dt.strftime("%Y-%m-%d"),
@@ -521,7 +547,8 @@ def detect_moon_sign_changes(monday: date, sunday: date) -> list:
                 "entering_sign": pos["sign"],
                 "entering_sign_es": pos["sign"], # Redundante pero consistente con otros formatos
                 "degree": 0.0, # Al ingresar siempre es 0
-                "from_sign": SIGNS_ES[prev_sign_index]
+                "from_sign": SIGNS_ES[prev_sign_index],
+                "phase": phase_name
             })
             prev_sign_index = current_sign_index
         
