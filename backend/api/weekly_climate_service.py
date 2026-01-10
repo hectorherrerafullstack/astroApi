@@ -18,9 +18,27 @@ from datetime import datetime, timedelta, date
 from dateutil import tz
 from pathlib import Path
 
-# Reutilizamos configuración de services.py
-BASE_DIR = Path(__file__).resolve().parents[1]
-swe.set_ephe_path(str(BASE_DIR.parent / "se_data"))
+# Configuración robusta de path de efemérides
+import os
+from django.conf import settings
+
+# 1. Intentar variable de entorno (Docker/Koyeb)
+ephe_path = os.environ.get("SE_EPHE_PATH")
+
+# 2. Intentar settings de Django
+if not ephe_path:
+    try:
+        ephe_path = settings.SE_EPHE_PATH
+    except AttributeError:
+        pass
+
+# 3. Fallback: cálculo relativo (Local dev)
+if not ephe_path:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+    ephe_path = str(BASE_DIR.parent / "se_data")
+
+print(f"DEBUG: Using SwissEph path: {ephe_path}")
+swe.set_ephe_path(ephe_path)
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED
 
 # Planetas para análisis semanal
@@ -476,7 +494,7 @@ def get_planets_positions(monday: date) -> dict:
 def detect_moon_sign_changes(monday: date, sunday: date) -> list:
     """
     Detecta los cambios de signo de la Luna durante la semana (Moon Ingresses).
-    Revisa hora por hora y luego refina minuto a minuto para máxima precisión.
+    Revisa hora por hora para mayor precisión.
     """
     moon_changes = []
     
@@ -513,33 +531,14 @@ def detect_moon_sign_changes(monday: date, sunday: date) -> list:
         current_sign_index = pos["sign_index"]
         
         if current_sign_index != prev_sign_index:
-            # Hubo cambio de signo en esta hora (current_dt -> next_dt)
-            # Refinar búsqueda minuto a minuto para encontrar el momento exacto
-            exact_dt = next_dt # Fallback
-            
-            # Buscar el minuto exacto comenzando desde current_dt
-            temp_dt = current_dt
-            found_minute = False
-            
-            for _ in range(60): # Revisar los 60 minutos
-                check_dt = temp_dt + timedelta(minutes=1)
-                jd_check = to_jd_ut(check_dt)
-                pos_check = get_planet_position(jd_check, swe.MOON)
-                
-                if pos_check["sign_index"] != prev_sign_index:
-                    # Encontramos el minuto exacto del cambio
-                    exact_dt = check_dt
-                    pos = pos_check # Actualizar posición final a la exacta
-                    found_minute = True
-                    break
-                temp_dt = check_dt
-            
-            # Calcular fase lunar en este momento exacto
-            sun_pos = get_planet_position(to_jd_ut(exact_dt), swe.SUN)
-            
-            phase_name = "Desconocida"
-            if not sun_pos.get("error"):
+            # Calcular fase lunar en este momento
+            sun_pos = get_planet_position(jd_ut, swe.SUN)
+            if sun_pos.get("error"):
+                 phase_name = "Desconocida"
+            else:
                 angle = (pos["longitude"] - sun_pos["longitude"]) % 360
+                
+                # Determinar nombre de fase
                 phase_name = ""
                 # Primero chequear fases principales (exactas)
                 for p_data in MAIN_LUNAR_PHASES.values():
@@ -560,9 +559,9 @@ def detect_moon_sign_changes(monday: date, sunday: date) -> list:
 
             # Hubo cambio de signo
             moon_changes.append({
-                "date": exact_dt.strftime("%Y-%m-%d"),
-                "time": exact_dt.strftime("%H:%M"),
-                "datetime": exact_dt.strftime("%Y-%m-%d %H:%M"),
+                "date": next_dt.strftime("%Y-%m-%d"),
+                "time": next_dt.strftime("%H:%M"),
+                "datetime": next_dt.strftime("%Y-%m-%d %H:%M"),
                 "entering_sign": pos["sign"],
                 "entering_sign_es": pos["sign"], # Redundante pero consistente con otros formatos
                 "degree": 0.0, # Al ingresar siempre es 0
