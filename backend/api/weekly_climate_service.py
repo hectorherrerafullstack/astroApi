@@ -37,13 +37,9 @@ PLANETS = {
     "pluto": swe.PLUTO,
 }
 
-# Asteroides principales
+# Asteroides principales (solo Quirón - los demás requieren archivos de efemérides adicionales)
 ASTEROIDS = {
     "chiron": swe.CHIRON,
-    "ceres": swe.CERES,
-    "pallas": swe.PALLAS,
-    "juno": swe.JUNO,
-    "vesta": swe.VESTA,
 }
 
 # Lilith (Luna Negra Media - SE_MEAN_APOG = 12)
@@ -81,10 +77,6 @@ PLANET_NAMES_ES = {
 # Nombres de asteroides en español
 ASTEROID_NAMES_ES = {
     "chiron": "Quirón",
-    "ceres": "Ceres",
-    "pallas": "Palas",
-    "juno": "Juno",
-    "vesta": "Vesta",
 }
 
 # Nombre de Lilith en español
