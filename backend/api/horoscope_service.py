@@ -10,11 +10,19 @@ from datetime import datetime, date
 from dateutil import tz
 from pathlib import Path
 import math
+import os
 from .cache_manager import cache_transits, cache_daily_horoscope, measure_performance
 
-# Reutilizamos configuración de services.py
-BASE_DIR = Path(__file__).resolve().parents[1]
-swe.set_ephe_path(str(BASE_DIR / "se_data"))
+# Configuración robusta de path de efemérides
+# 1. Intentar variable de entorno (Docker/Koyeb)
+ephe_path = os.environ.get("SE_EPHE_PATH")
+
+# 2. Fallback: cálculo relativo (Local dev)
+if not ephe_path:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+    ephe_path = str(BASE_DIR.parent / "se_data")
+
+swe.set_ephe_path(ephe_path)
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED
 
 # Planetas para tránsitos (rápidos más influyentes en lo diario)

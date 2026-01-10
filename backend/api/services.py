@@ -17,10 +17,18 @@ import swisseph as swe
 from datetime import datetime
 from dateutil import tz
 from pathlib import Path
+import os
 
-# Inicialización Swiss Ephemeris (DE431)
-BASE_DIR = Path(__file__).resolve().parents[1]
-swe.set_ephe_path(str(BASE_DIR.parent / "se_data"))  # carpeta con sepl*.se1, semo*.se1
+# Configuración robusta de path de efemérides
+# 1. Intentar variable de entorno (Docker/Koyeb)
+ephe_path = os.environ.get("SE_EPHE_PATH")
+
+# 2. Fallback: cálculo relativo (Local dev)
+if not ephe_path:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+    ephe_path = str(BASE_DIR.parent / "se_data")
+
+swe.set_ephe_path(ephe_path)  # carpeta con sepl*.se1, semo*.se1
 FLAGS = swe.FLG_SWIEPH | swe.FLG_SPEED        # sin TRUEPOS, sin TOPOCTR
 
 # Planetas que calculemos (Swiss IDs)
