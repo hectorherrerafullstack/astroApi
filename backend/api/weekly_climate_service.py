@@ -473,6 +473,63 @@ def get_planets_positions(monday: date) -> dict:
     return result
 
 
+def detect_moon_sign_changes(monday: date, sunday: date) -> list:
+    """
+    Detecta los cambios de signo de la Luna durante la semana (Moon Ingresses).
+    Revisa hora por hora para mayor precisión.
+    """
+    moon_changes = []
+    
+    # Inicio a las 00:00 del lunes
+    current_dt = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
+    
+    # Fin a las 23:59 del domingo
+    end_dt = datetime(sunday.year, sunday.month, sunday.day, 23, 59, 59)
+    
+    # Obtener estado inicial
+    jd_ut = to_jd_ut(current_dt)
+    start_pos = get_planet_position(jd_ut, swe.MOON)
+    
+    # Si hubo error en cálculo inicial, abortar
+    if start_pos.get("error"):
+        return []
+        
+    prev_sign_index = start_pos["sign_index"]
+    
+    # Iterar cada hora
+    while current_dt <= end_dt:
+        # Avanzar 1 hora
+        next_dt = current_dt + timedelta(hours=1)
+        if next_dt > end_dt:
+            break
+            
+        jd_ut = to_jd_ut(next_dt)
+        pos = get_planet_position(jd_ut, swe.MOON)
+        
+        if pos.get("error"):
+            current_dt = next_dt
+            continue
+            
+        current_sign_index = pos["sign_index"]
+        
+        if current_sign_index != prev_sign_index:
+            # Hubo cambio de signo
+            moon_changes.append({
+                "date": next_dt.strftime("%Y-%m-%d"),
+                "time": next_dt.strftime("%H:%M"),
+                "datetime": next_dt.strftime("%Y-%m-%d %H:%M"),
+                "entering_sign": pos["sign"],
+                "entering_sign_es": pos["sign"], # Redundante pero consistente con otros formatos
+                "degree": 0.0, # Al ingresar siempre es 0
+                "from_sign": SIGNS_ES[prev_sign_index]
+            })
+            prev_sign_index = current_sign_index
+        
+        current_dt = next_dt
+            
+    return moon_changes
+
+
 def calculate_weekly_climate(start_date: date = None) -> dict:
     """
     Función principal que calcula todos los datos del clima astral semanal.
@@ -494,6 +551,7 @@ def calculate_weekly_climate(start_date: date = None) -> dict:
             "end": sunday.strftime("%Y-%m-%d")
         },
         "lunar_phase": get_lunar_phase_events(monday, sunday),
+        "moon_sign_changes": detect_moon_sign_changes(monday, sunday),
         "sign_changes": detect_sign_changes(monday, sunday),
         "retrograde_changes": detect_retrograde_changes(monday, sunday),
         "major_aspects": get_major_aspects(monday, sunday),
