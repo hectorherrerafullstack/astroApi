@@ -37,6 +37,20 @@ PLANETS = {
     "pluto": swe.PLUTO,
 }
 
+# Asteroides principales
+ASTEROIDS = {
+    "chiron": swe.CHIRON,
+    "ceres": swe.CERES,
+    "pallas": swe.PALLAS,
+    "juno": swe.JUNO,
+    "vesta": swe.VESTA,
+}
+
+# Lilith (Luna Negra Media - SE_MEAN_APOG = 12)
+LILITH = {
+    "lilith": 12,
+}
+
 # Planetas rápidos (priorizados para aspectos)
 FAST_PLANETS = ["mercury", "venus", "mars"]
 
@@ -62,6 +76,20 @@ PLANET_NAMES_ES = {
     "uranus": "Urano",
     "neptune": "Neptuno",
     "pluto": "Plutón",
+}
+
+# Nombres de asteroides en español
+ASTEROID_NAMES_ES = {
+    "chiron": "Quirón",
+    "ceres": "Ceres",
+    "pallas": "Palas",
+    "juno": "Juno",
+    "vesta": "Vesta",
+}
+
+# Nombre de Lilith en español
+LILITH_NAMES_ES = {
+    "lilith": "Lilith",
 }
 
 # Aspectos principales
@@ -390,26 +418,49 @@ def find_exact_aspect_date(monday: date, sunday: date, p1: str, p2: str, target_
 
 def get_planets_positions(monday: date) -> dict:
     """
-    Retorna las posiciones de TODOS los planetas al inicio de la semana.
-    Incluye planetas rápidos (Mercury, Venus, Mars) y lentos (Jupiter, Saturn, Uranus, Neptune, Pluto).
+    Retorna las posiciones de TODOS los cuerpos celestes al inicio de la semana.
+    Incluye: Sol, Luna, planetas, asteroides principales y Lilith.
     """
     dt = datetime(monday.year, monday.month, monday.day, 12, 0, 0)
     jd_ut = to_jd_ut(dt)
     
-    # Todos los planetas excepto Sol y Luna
-    all_planets = FAST_PLANETS + OUTER_PLANETS + HEAVY_PLANETS
+    result = {
+        "planets": {},
+        "asteroids": {},
+        "lilith": {}
+    }
     
-    positions = {}
-    for planet_name in all_planets:
-        pos = get_planet_position(jd_ut, PLANETS[planet_name])
-        positions[planet_name] = {
+    # TODOS los planetas (incluido Sol y Luna)
+    for planet_name, planet_id in PLANETS.items():
+        pos = get_planet_position(jd_ut, planet_id)
+        result["planets"][planet_name] = {
             "planet_es": PLANET_NAMES_ES[planet_name],
             "sign": pos["sign"],
             "degree": round(pos["degree"], 1),
             "retrograde": pos["retrograde"]
         }
     
-    return positions
+    # Asteroides
+    for asteroid_name, asteroid_id in ASTEROIDS.items():
+        pos = get_planet_position(jd_ut, asteroid_id)
+        result["asteroids"][asteroid_name] = {
+            "asteroid_es": ASTEROID_NAMES_ES[asteroid_name],
+            "sign": pos["sign"],
+            "degree": round(pos["degree"], 1),
+            "retrograde": pos["retrograde"]
+        }
+    
+    # Lilith (Luna Negra)
+    for lilith_name, lilith_id in LILITH.items():
+        pos = get_planet_position(jd_ut, lilith_id)
+        result["lilith"][lilith_name] = {
+            "lilith_es": LILITH_NAMES_ES[lilith_name],
+            "sign": pos["sign"],
+            "degree": round(pos["degree"], 1),
+            "retrograde": pos["retrograde"]
+        }
+    
+    return result
 
 
 def calculate_weekly_climate(start_date: date = None) -> dict:
