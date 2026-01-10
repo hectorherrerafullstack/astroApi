@@ -347,6 +347,10 @@ def get_major_aspects(monday: date, sunday: date) -> list:
             if p1 == "sun" or p2 == "sun":
                 continue
             
+            # Skip if any planet failed calculation
+            if positions[p1].get("error") or positions[p2].get("error"):
+                continue
+
             lon1 = positions[p1]["longitude"]
             lon2 = positions[p2]["longitude"]
             distance = angular_distance(lon1, lon2)
