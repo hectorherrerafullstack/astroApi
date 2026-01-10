@@ -9,7 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiamos el código
 COPY backend/ /app/backend/
-# La carpeta se_data se montará como volumen en runtime
+# Copiamos los datos de efemérides (necesario para asteroides como Quirón)
+COPY se_data/ /app/se_data/
 
 ENV DJANGO_SECRET_KEY=dev DJANGO_DEBUG=False SE_EPHE_PATH=/app/se_data
 EXPOSE 8000
