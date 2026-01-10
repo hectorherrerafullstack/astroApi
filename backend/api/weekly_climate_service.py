@@ -138,19 +138,33 @@ def to_jd_ut(dt: datetime, tzname: str = "UTC") -> float:
 
 
 def get_planet_position(jd_ut: float, planet_id: int) -> dict:
-    """Obtiene la posición de un planeta"""
-    lonlat, ret = swe.calc_ut(jd_ut, planet_id, FLAGS)
-    lon = lonlat[0] % 360.0
-    speed = lonlat[3]
-    
-    return {
-        "longitude": lon,
-        "sign_index": int(lon // 30),
-        "sign": SIGNS_ES[int(lon // 30)],
-        "degree": lon % 30,
-        "speed": speed,
-        "retrograde": speed < 0
-    }
+    """Obtiene la posición de un planeta con manejo de errores"""
+    try:
+        lonlat, ret = swe.calc_ut(jd_ut, planet_id, FLAGS)
+        lon = lonlat[0] % 360.0
+        speed = lonlat[3]
+        
+        return {
+            "longitude": lon,
+            "sign_index": int(lon // 30),
+            "sign": SIGNS_ES[int(lon // 30)],
+            "degree": lon % 30,
+            "speed": speed,
+            "retrograde": speed < 0,
+            "error": None
+        }
+    except Exception as e:
+        print(f"Error calculating planet {planet_id}: {str(e)}")
+        # Retornar valores seguros para no romper la ejecución
+        return {
+            "longitude": 0.0,
+            "sign_index": 0,
+            "sign": "Error",
+            "degree": 0.0,
+            "speed": 0.0,
+            "retrograde": False,
+            "error": str(e)
+        }
 
 
 def get_lunar_phase_events(monday: date, sunday: date) -> dict:
@@ -467,6 +481,9 @@ def calculate_weekly_climate(start_date: date = None) -> dict:
     """
     monday, sunday = get_week_dates(start_date)
     
+    # Debug info
+    print(f"DEBUG: Computing weekly climate for week {monday} to {sunday}")
+
     return {
         "week": {
             "start": monday.strftime("%Y-%m-%d"),

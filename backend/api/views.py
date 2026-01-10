@@ -333,6 +333,7 @@ def weekly_climate_view(request):
     try:
         result = calculate_weekly_climate(start_date)
     except Exception as e:
+        print(f"ERROR in weekly_climate_view: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
     
     resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
