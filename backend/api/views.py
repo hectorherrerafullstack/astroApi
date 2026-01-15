@@ -20,7 +20,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from .services import compute_chart, get_important_transits
+from .services import compute_chart, get_important_transits, calculate_eclipses
 from .weekly_climate_service import calculate_weekly_climate
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data
 from .weekly_climate_service import calculate_weekly_climate
@@ -371,6 +371,34 @@ def daily_planetary_positions_view(request):
         return JsonResponse({"error": str(e)}, status=500)
     
     resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def eclipses_view(request):
+    """
+    GET /api/eclipses/?year=2026
+    
+    Retorna lista de eclipses (solares y lunares) para el año dado.
+    """
+    year_str = request.GET.get("year")
+    if year_str:
+        try:
+            year = int(year_str)
+        except ValueError:
+            return HttpResponseBadRequest("Invalid year format.")
+    else:
+        year = datetime.now().year
+    
+    try:
+        eclipses = calculate_eclipses(year)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    resp = JsonResponse({"year": year, "eclipses": eclipses}, json_dumps_params={"ensure_ascii": False})
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
     return resp

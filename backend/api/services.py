@@ -354,3 +354,126 @@ def get_lunar_phase(sun_lon: float, moon_lon: float) -> str:
         return "Cuarto Menguante"  # Last Quarter
     else:
         return "Menguante Creciente"  # Waning Crescent
+
+def calculate_eclipses(year: int):
+    """
+    Calcula todos los eclipses (solares y lunares) para un año dado.
+    Retorna detalles incluyendo signo, grado y nodo asociado.
+    """
+    from datetime import datetime
+    
+    eclipses = []
+    start_time = swe.julday(year, 1, 1)
+    end_time = swe.julday(year, 12, 31)
+    
+    t = start_time
+    
+    # 1. Buscar Eclipses Solares
+    while True:
+        # swe.sol_eclipse_when_glob(tjd_start, iflags) -> (retflag, [tret, corel...])
+        res = swe.sol_eclipse_when_glob(t, swe.FLG_SWIEPH)
+        if res[0] == -1:
+            break
+        
+        t_max = res[1][0]  # Tiempo del máximo eclipse
+        if t_max > end_time:
+            break
+            
+        # Detalles del eclipse
+        # Convertir a fecha
+        year_e, month_e, day_e, hour_e = swe.revjul(t_max)
+        dt_eclipse = datetime(year_e, month_e, day_e, int(hour_e), int((hour_e % 1) * 60))
+        
+        # Calcular posiciones para determinar signo y nodo
+        # Sol y Luna están en conjunción cerca del nodo
+        pos_sun = swe.calc_ut(t_max, swe.SUN, swe.FLG_SWIEPH)[0][0]
+        pos_node = swe.calc_ut(t_max, swe.TRUE_NODE, swe.FLG_SWIEPH)[0][0] # Nodo Norte real
+        
+        # Signo del eclipse (posición del Sol/Luna)
+        sign_eclipse = fmt_zodiac(pos_sun).split(" ")[0]
+        
+        # Determinar si es Nodo Norte o Sur
+        # Si el Sol está cerca del Nodo Norte (dentro de ~20°), es Nodo Norte.
+        # Si está opuesto (~180°), es Nodo Sur.
+        dist_north = min(abs(pos_sun - pos_node), 360 - abs(pos_sun - pos_node))
+        dist_south = min(abs(pos_sun - (pos_node + 180) % 360), 360 - abs(pos_sun - (pos_node + 180) % 360))
+        
+        node_name = "Nodo Norte" if dist_north < dist_south else "Nodo Sur"
+        
+        # Tipo de eclipse solar
+        # eclipse_type index 9 in res[1] is not standardized in python wrapper output sometimes, rely on flag or calc?
+        # En sol_eclipse_when_glob:
+        # bit 0: central, bit 1: non-central, bit 2: total, bit 3: annular, bit 4: partial
+        # Simplificación basada en corel (res[1][1] - res[1][8] etc is complex), let's use simpler logic if accessible or basic classification
+        # For now, generic "Solar" is safe, refine if flags available easily.
+        # Actually retflag contains bits.
+        flags = res[0]
+        subtype = "Parcial"
+        if flags & swe.ECL_TOTAL: subtype = "Total"
+        elif flags & swe.ECL_ANNULAR: subtype = "Anular"
+        elif flags & swe.ECL_ANNULAR_TOTAL: subtype = "Híbrido"
+        
+        eclipses.append({
+            "date": dt_eclipse.strftime("%Y-%m-%d"),
+            "datetime": dt_eclipse.isoformat(),
+            "type": "Solar",
+            "subtype": subtype,
+            "sign": sign_eclipse,
+            "degree": round(pos_sun % 30, 2),
+            "abs_degree": round(pos_sun, 2),
+            "node": node_name,
+            "node_sign": fmt_zodiac(pos_node if node_name == "Nodo Norte" else (pos_node + 180) % 360).split(" ")[0],
+            "proximity": round(dist_north if node_name == "Nodo Norte" else dist_south, 2)
+        })
+        
+        t = t_max + 20 # avanzar ~20 días para buscar el siguiente
+        
+    # 2. Buscar Eclipses Lunares
+    t = start_time
+    while True:
+        res = swe.lun_eclipse_when(t, swe.FLG_SWIEPH)
+        if res[0] == -1:
+            break
+            
+        t_max = res[1][0]
+        if t_max > end_time:
+            break
+            
+        year_e, month_e, day_e, hour_e = swe.revjul(t_max)
+        dt_eclipse = datetime(year_e, month_e, day_e, int(hour_e), int((hour_e % 1) * 60))
+        
+        # En eclipse lunar, Luna opuesta al Sol. Signo del eclipse = Signo de la Luna.
+        pos_moon = swe.calc_ut(t_max, swe.MOON, swe.FLG_SWIEPH)[0][0]
+        pos_node = swe.calc_ut(t_max, swe.TRUE_NODE, swe.FLG_SWIEPH)[0][0]
+        
+        sign_eclipse = fmt_zodiac(pos_moon).split(" ")[0]
+        
+        # Determinar nodo. Luna cerca del nodo -> eclipse.
+        dist_north = min(abs(pos_moon - pos_node), 360 - abs(pos_moon - pos_node))
+        dist_south = min(abs(pos_moon - (pos_node + 180) % 360), 360 - abs(pos_moon - (pos_node + 180) % 360))
+        
+        node_name = "Nodo Norte" if dist_north < dist_south else "Nodo Sur"
+        
+        flags = res[0]
+        subtype = "Penumbral" # Default weak
+        if flags & swe.ECL_TOTAL: subtype = "Total"
+        elif flags & swe.ECL_PARTIAL: subtype = "Parcial"
+        
+        eclipses.append({
+            "date": dt_eclipse.strftime("%Y-%m-%d"),
+            "datetime": dt_eclipse.isoformat(),
+            "type": "Lunar",
+            "subtype": subtype,
+            "sign": sign_eclipse,
+            "degree": round(pos_moon % 30, 2),
+            "abs_degree": round(pos_moon, 2),
+            "node": node_name,
+            "node_sign": fmt_zodiac(pos_node if node_name == "Nodo Norte" else (pos_node + 180) % 360).split(" ")[0],
+            "proximity": round(dist_north if node_name == "Nodo Norte" else dist_south, 2)
+        })
+        
+        t = t_max + 20
+
+    # Ordenar por fecha
+    eclipses.sort(key=lambda x: x["datetime"])
+    return eclipses

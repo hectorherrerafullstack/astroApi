@@ -14,7 +14,7 @@
 # along with astroapi.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.urls import path
-from .views import health, compute_chart_view, daily_horoscope_view, transits_view, monthly_transits_view, cache_stats_view, sun_transit_daily_view, weekly_climate_view, daily_planetary_positions_view
+from .views import health, compute_chart_view, daily_horoscope_view, transits_view, monthly_transits_view, cache_stats_view, sun_transit_daily_view, weekly_climate_view, daily_planetary_positions_view, eclipses_view
 
 urlpatterns = [
     path("health/", health, name="health"),
@@ -25,5 +25,6 @@ urlpatterns = [
     path("weekly-climate/", weekly_climate_view, name="weekly_climate"),
     path("daily-positions/", daily_planetary_positions_view, name="daily_planetary_positions"),
     path("monthly-transits/<int:month>/<int:year>/", monthly_transits_view, name="monthly_transits"),
+    path("eclipses/", eclipses_view, name="eclipses"),
     path("cache/stats/", cache_stats_view, name="cache_stats"),
 ]
