@@ -142,6 +142,59 @@ def calculate_transits(dt: datetime, tzname: str = "UTC") -> dict:
     return transits
 
 
+def get_next_moon_ingress(dt: datetime, tzname: str = "UTC") -> dict:
+    """
+    Encuentra el próximo cambio de signo de la Luna.
+    Busca hora por hora y luego refina al minuto.
+    """
+    jd_ut = to_jd_ut(dt, tzname)
+    
+    # Posición inicial
+    lonlat, ret = swe.calc_ut(jd_ut, swe.MOON, FLAGS)
+    start_sign_index = int(lonlat[0] // 30)
+    
+    current_jd = jd_ut
+    # Buscamos en pasos de 1 hora hasta 4 días (por si acaso)
+    for _ in range(96):
+        current_jd += 1/24.0 # +1 hora
+        lonlat, ret = swe.calc_ut(current_jd, swe.MOON, FLAGS)
+        current_sign_index = int(lonlat[0] // 30)
+        
+        if current_sign_index != start_sign_index:
+            # Refinar el momento exacto (búsqueda lineal de a 1 minuto)
+            # Volvemos atrás la hora que acabamos de saltar
+            current_jd -= 1/24.0
+            for _ in range(60):
+                current_jd += 1/(24.0 * 60.0) # +1 minuto
+                lonlat_fine, ret = swe.calc_ut(current_jd, swe.MOON, FLAGS)
+                fine_sign_index = int(lonlat_fine[0] // 30)
+                if fine_sign_index != start_sign_index:
+                    # Encontrado al minuto exacto
+                    break
+            
+            # Convertir JD a UTC datetime
+            y, m, d, h = swe.revjul(current_jd, swe.GREG_CAL)
+            hours = int(h)
+            remainder = (h - hours) * 60
+            minutes = int(remainder)
+            seconds = int((remainder - minutes) * 60)
+            
+            # Limpieza básica para evitar micro-errores de precisión
+            if seconds >= 60: seconds = 59
+            if minutes >= 60: minutes = 59
+            
+            change_dt = datetime(y, m, d, hours, minutes, seconds)
+            
+            return {
+                "next_sign": SIGNS_ES[current_sign_index],
+                "next_sign_index": current_sign_index,
+                "change_datetime": change_dt.strftime("%Y-%m-%d %H:%M:%S"),
+                "change_iso": change_dt.isoformat() + "Z"
+            }
+    
+    return None
+
+
 def angular_distance(lon1: float, lon2: float) -> float:
     """Calcula distancia angular entre dos longitudes (0-180°)"""
     diff = abs(lon1 - lon2)

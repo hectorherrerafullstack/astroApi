@@ -22,7 +22,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .services import compute_chart, get_important_transits, calculate_eclipses
 from .weekly_climate_service import calculate_weekly_climate
-from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data
+from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data, get_next_moon_ingress
 from .weekly_climate_service import calculate_weekly_climate
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
@@ -136,10 +136,13 @@ def transits_view(request):
     try:
         transits = calculate_transits(target_date, timezone)
         moon_data = transits["moon"]
+        next_ingress = get_next_moon_ingress(target_date, timezone)
+        
         result = {
             "date": target_date.strftime("%Y-%m-%d"),
             "timezone": timezone,
-            **moon_data
+            **moon_data,
+            "next_ingress": next_ingress
         }
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

@@ -21,6 +21,7 @@ urlpatterns = [
     path("compute/", compute_chart_view, name="compute_chart"),
     path("horoscope/daily/", daily_horoscope_view, name="daily_horoscope"),
     path("transits/", transits_view, name="transits"),
+    path("moon/", transits_view, name="moon_daily"),
     path("sun-transit/", sun_transit_daily_view, name="sun_transit_daily"),
     path("weekly-climate/", weekly_climate_view, name="weekly_climate"),
     path("daily-positions/", daily_planetary_positions_view, name="daily_planetary_positions"),
