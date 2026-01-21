@@ -128,6 +128,9 @@ def transits_view(request):
     if date_str:
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d")
+            # Si es HOY, usar la hora actual para cálculos precisos
+            if target_date.date() == datetime.now().date():
+                target_date = datetime.now()
         except ValueError:
             return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
     else:
