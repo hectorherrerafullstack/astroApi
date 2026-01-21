@@ -30,8 +30,8 @@ REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro
 def health(request):
     resp = JsonResponse({
         "status": "ok",
-        "version": "2026-01-21-v2",  # Para verificar deploy
-        "fix": "moon_realtime_no_cache"
+        "version": "2026-01-21-v3",  # Para verificar deploy
+        "fix": "moon_realtime_utc_timezone_fix"
     })
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
@@ -129,25 +129,34 @@ def transits_view(request):
     date_str = request.GET.get("date")
     timezone = request.GET.get("timezone", "UTC")
     
+    force_utc = False
+    
     if date_str:
         try:
             target_date = datetime.strptime(date_str, "%Y-%m-%d")
-            # Si es HOY, usar la hora actual para cálculos precisos
-            if target_date.date() == datetime.now().date():
-                target_date = datetime.now()
+            # Si es HOY, usar la hora actual UTC
+            if target_date.date() == datetime.utcnow().date():
+                target_date = datetime.utcnow()
+                force_utc = True
         except ValueError:
             return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
     else:
-        target_date = datetime.now()
+        target_date = datetime.utcnow()
+        force_utc = True
     
     try:
+        # Si usamos la hora actual UTC, forzamos la zona horaria a UTC para el cálculo
+        calc_timezone = "UTC" if force_utc else timezone
+        
         # Usar cálculo en tiempo real para la Luna (sin caché)
-        moon_data = get_moon_realtime(target_date, timezone)
-        next_ingress = get_next_moon_ingress(target_date, timezone)
+        moon_data = get_moon_realtime(target_date, calc_timezone)
+        next_ingress = get_next_moon_ingress(target_date, calc_timezone)
         
         result = {
             "date": target_date.strftime("%Y-%m-%d"),
             "timezone": timezone,
+            "server_time_utc": target_date.strftime("%H:%M:%S"),
+            "calculation_timezone": calc_timezone,
             **moon_data,
             "next_ingress": next_ingress
         }
