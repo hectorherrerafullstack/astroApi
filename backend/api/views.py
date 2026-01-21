@@ -22,7 +22,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from .services import compute_chart, get_important_transits, calculate_eclipses
 from .weekly_climate_service import calculate_weekly_climate
-from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data, get_next_moon_ingress
+from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data, get_next_moon_ingress, get_moon_realtime
 from .weekly_climate_service import calculate_weekly_climate
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
@@ -137,8 +137,8 @@ def transits_view(request):
         target_date = datetime.now()
     
     try:
-        transits = calculate_transits(target_date, timezone)
-        moon_data = transits["moon"]
+        # Usar cálculo en tiempo real para la Luna (sin caché)
+        moon_data = get_moon_realtime(target_date, timezone)
         next_ingress = get_next_moon_ingress(target_date, timezone)
         
         result = {

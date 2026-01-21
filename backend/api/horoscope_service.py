@@ -93,6 +93,51 @@ def to_jd_ut(dt: datetime, tzname: str = "UTC") -> float:
     return jd_ut
 
 
+def get_moon_realtime(dt: datetime, tzname: str = "UTC") -> dict:
+    """
+    Calcula la posición de la Luna en TIEMPO REAL sin caché.
+    Usar para el endpoint /api/moon/ donde se necesita precisión al minuto.
+    """
+    jd_ut = to_jd_ut(dt, tzname)
+    
+    lonlat, ret = swe.calc_ut(jd_ut, swe.MOON, FLAGS)
+    moon_lon = lonlat[0] % 360.0
+    moon_speed = lonlat[3]
+    
+    # Calcular posición del Sol para la fase
+    sun_lonlat, _ = swe.calc_ut(jd_ut, swe.SUN, FLAGS)
+    sun_lon = sun_lonlat[0] % 360.0
+    
+    # Calcular fase lunar
+    angle = (moon_lon - sun_lon) % 360
+    if angle < 45:
+        phase = "Luna Nueva"
+    elif angle < 90:
+        phase = "Creciente Menguante"
+    elif angle < 135:
+        phase = "Cuarto Creciente"
+    elif angle < 180:
+        phase = "Creciente Gibosa"
+    elif angle < 225:
+        phase = "Luna Llena"
+    elif angle < 270:
+        phase = "Menguante Gibosa"
+    elif angle < 315:
+        phase = "Cuarto Menguante"
+    else:
+        phase = "Menguante Creciente"
+    
+    return {
+        "longitude": moon_lon,
+        "speed": moon_speed,
+        "sign": SIGNS_ES[int(moon_lon // 30)],
+        "sign_index": int(moon_lon // 30),
+        "degree_in_sign": moon_lon % 30,
+        "phase": phase,
+        "phase_angle": angle
+    }
+
+
 @cache_transits(ttl=3600)  # Caché de 1 hora para tránsitos
 @measure_performance("calculate_transits")
 def calculate_transits(dt: datetime, tzname: str = "UTC") -> dict:
