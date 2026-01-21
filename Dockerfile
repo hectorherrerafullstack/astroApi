@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiamos el código
+# Copiamos el código (force rebuild: 2026-01-21-1259)
 COPY backend/ /app/backend/
 # Copiamos los datos de efemérides (necesario para asteroides como Quirón)
 COPY se_data/ /app/se_data/
