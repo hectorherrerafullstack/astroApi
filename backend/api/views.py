@@ -28,7 +28,11 @@ from .weekly_climate_service import calculate_weekly_climate
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
 
 def health(request):
-    resp = JsonResponse({"status": "ok"})
+    resp = JsonResponse({
+        "status": "ok",
+        "version": "2026-01-21-v2",  # Para verificar deploy
+        "fix": "moon_realtime_no_cache"
+    })
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
     return resp
