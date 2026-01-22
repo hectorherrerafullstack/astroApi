@@ -325,19 +325,23 @@ def sun_transit_daily_view(request):
 def weekly_climate_view(request):
     """
     GET /api/weekly-climate/
-    GET /api/weekly-climate/?start_date=2026-01-05
+    GET /api/weekly-climate/?start_date=2026-01-05&timezone=Europe/Madrid
     
     Retorna los datos del clima astral semanal:
+    - request_time: Hora de la petición en la zona horaria del usuario
     - Fase lunar principal
-    - Cambios de signo (Mercurio/Venus/Marte)
+    - Cambios de signo (TODOS los cuerpos celestes con hora exacta)
     - Cambios retro/directo
     - Aspectos fuertes priorizados (máx. 4)
-    - Posiciones planetarias
+    - Posiciones planetarias, asteroides y Lilith
     """
     from datetime import date
+    from dateutil import tz as dateutil_tz
     
     # Parámetro opcional: start_date
     start_date_str = request.GET.get("start_date")
+    # Parámetro opcional: timezone (default UTC)
+    timezone_str = request.GET.get("timezone", "UTC")
     
     if start_date_str:
         try:
@@ -349,8 +353,37 @@ def weekly_climate_view(request):
     else:
         start_date = None  # Usará la semana actual
     
+    # Validar timezone
+    user_tz = dateutil_tz.gettz(timezone_str)
+    if user_tz is None:
+        return HttpResponseBadRequest(
+            f"Invalid timezone: {timezone_str}. Use IANA format like 'Europe/Madrid'."
+        )
+    
     try:
         result = calculate_weekly_climate(start_date)
+        
+        # Añadir hora de la petición en la zona horaria del usuario
+        now_utc = datetime.now(dateutil_tz.UTC)
+        now_local = now_utc.astimezone(user_tz)
+        
+        result["request_info"] = {
+            "request_time_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%S"),
+            "request_time_local": now_local.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timezone": timezone_str
+        }
+        
+        # Convertir las horas de cambios de signo a la zona horaria del usuario
+        if "sign_changes" in result:
+            for change in result["sign_changes"]:
+                if "datetime_utc" in change:
+                    # Parsear la fecha UTC y convertir a local
+                    dt_utc = datetime.fromisoformat(change["datetime_utc"])
+                    dt_utc = dt_utc.replace(tzinfo=dateutil_tz.UTC)
+                    dt_local = dt_utc.astimezone(user_tz)
+                    change["time_local"] = dt_local.strftime("%H:%M")
+                    change["datetime_local"] = dt_local.strftime("%Y-%m-%dT%H:%M:%S")
+        
     except Exception as e:
         print(f"ERROR in weekly_climate_view: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)

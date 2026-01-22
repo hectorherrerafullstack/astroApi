@@ -246,40 +246,117 @@ def get_lunar_phase_events(monday: date, sunday: date) -> dict:
     return main_event
 
 
+def find_exact_ingress_time(jd_start: float, jd_end: float, planet_id: int, from_sign_index: int) -> tuple:
+    """
+    Encuentra la hora exacta del cambio de signo mediante búsqueda binaria.
+    Retorna (datetime_utc, nuevo_signo_str)
+    """
+    # Tolerancia de 1 minuto aprox (1 min = 1/1440 días = ~0.000694 JD)
+    TOLERANCE = 0.000694
+    
+    start = jd_start
+    end = jd_end
+    
+    # Búsqueda binaria
+    while (end - start) > TOLERANCE:
+        mid = (start + end) / 2
+        pos = get_planet_position(mid, planet_id)
+        
+        if pos["sign_index"] == from_sign_index:
+            # Todavía en el mismo signo, el cambio está después
+            start = mid
+        else:
+            # Ya cambió, el cambio está antes (o es este)
+            end = mid
+            
+    # Tomamos 'end' como el momento del cambio para asegurar que ya estamos en el nuevo signo
+    final_jd = end
+    
+    # Convertir JD UT a Datetime
+    # swe.jdut1_to_utc devuelve year, month, day, hour, min, sec
+    y, m, d, h, mi, s = swe.jdut1_to_utc(final_jd, swe.GREG_CAL)
+    # Ajuste de segundos a 0 para limpiar
+    dt_change = datetime(y, m, d, int(h), int(mi), int(s))
+    
+    # Obtener el signo final exacto
+    final_pos = get_planet_position(final_jd, planet_id)
+    
+    return dt_change, final_pos["sign"]
+
+
 def detect_sign_changes(monday: date, sunday: date) -> list:
     """
-    Detecta cambios de signo de Mercurio, Venus y Marte durante la semana.
+    Detecta cambios de signo de TODOS los cuerpos celestes durante la semana.
+    Devuelve la fecha y hora exacta (UTC).
     """
     sign_changes = []
     
-    for planet_name in FAST_PLANETS:
-        planet_id = PLANETS[planet_name]
+    # Combinar todos los cuerpos en una lista para iterar
+    # Formato: (nombre_code, nombre_es, swe_id)
+    all_bodies = []
+    
+    # Planetas (incluyendo Sol y Luna ahora!!)
+    for name, pid in PLANETS.items():
+        all_bodies.append((name, PLANET_NAMES_ES.get(name, name), pid))
         
-        # Posición al inicio de la semana
-        dt_start = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
-        jd_start = to_jd_ut(dt_start)
-        start_pos = get_planet_position(jd_start, planet_id)
+    # Asteroides
+    for name, pid in ASTEROIDS.items():
+        all_bodies.append((name, ASTEROID_NAMES_ES.get(name, name), pid))
         
-        prev_sign = start_pos["sign_index"]
+    # Lilith
+    for name, pid in LILITH.items():
+        all_bodies.append((name, LILITH_NAMES_ES.get(name, name), pid))
+
+    for name, name_es, planet_id in all_bodies:
+        # Posición al inicio de la semana (Lunes 00:00 UTC)
+        # Importante: Usar fecha completa con hora 00:00
+        current_dt = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
+        current_jd = to_jd_ut(current_dt)
         
-        # Revisar cada día
-        current = monday + timedelta(days=1)
-        while current <= sunday:
-            dt = datetime(current.year, current.month, current.day, 12, 0, 0)
-            jd_ut = to_jd_ut(dt)
-            pos = get_planet_position(jd_ut, planet_id)
+        start_pos = get_planet_position(current_jd, planet_id)
+        current_sign_idx = start_pos["sign_index"]
+        
+        # Iterar día a día para encontrar el día del cambio
+        # Hasta el fin del domingo (Domingo 23:59:59 aprox, o Lunes siguiente 00:00)
+        # Vamos hasta 7 días
+        
+        temp_jd = current_jd
+        
+        for i in range(1, 8):  # 7 días de la semana
+            next_dt = current_dt + timedelta(days=i)
+            next_jd = to_jd_ut(next_dt)
             
-            if pos["sign_index"] != prev_sign:
+            next_pos = get_planet_position(next_jd, planet_id)
+            
+            if next_pos["sign_index"] != current_sign_idx:
+                # ¡Cambio detectado en las últimas 24h!
+                # Buscar momento exacto entre temp_jd (ayer 00:00) y next_jd (hoy 00:00)
+                # Ojo: temp_jd es el inicio del intervalo, next_jd es el fin
+                
+                # 'temp_jd' corresponde a 'next_dt - 1 day'
+                # 'next_jd' corresponde a 'next_dt'
+                
+                prev_jd = to_jd_ut(next_dt - timedelta(days=1))
+                
+                exact_dt, to_sign_str = find_exact_ingress_time(prev_jd, next_jd, planet_id, current_sign_idx)
+                
                 sign_changes.append({
-                    "planet": planet_name,
-                    "planet_es": PLANET_NAMES_ES[planet_name],
-                    "from_sign": SIGNS_ES[prev_sign],
-                    "to_sign": pos["sign"],
-                    "date": current.strftime("%Y-%m-%d")
+                    "planet": name,
+                    "planet_es": name_es or name.capitalize(), # Fallback si no hay traducción
+                    "from_sign": SIGNS_ES[current_sign_idx],
+                    "to_sign": to_sign_str,
+                    "date": exact_dt.strftime("%Y-%m-%d"),
+                    "time_utc": exact_dt.strftime("%H:%M"),
+                    "datetime_utc": exact_dt.isoformat()
                 })
-                prev_sign = pos["sign_index"]
+                
+                # Actualizar índice actual
+                current_sign_idx = next_pos["sign_index"]
             
-            current += timedelta(days=1)
+            temp_jd = next_jd
+            
+    # Ordenar por fecha/hora
+    sign_changes.sort(key=lambda x: x["datetime_utc"])
     
     return sign_changes
 
