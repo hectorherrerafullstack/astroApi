@@ -98,6 +98,9 @@ def planet_transits_view(request):
         if "houses" in result:
             del result["houses"]
             
+        if "aspects" in result:
+            del result["aspects"]
+            
         # 2. Add South Node (Calculated from True Node)
         if "true_node" in result["planets"]:
             tn_val = result["planets"]["true_node"]["value"]
