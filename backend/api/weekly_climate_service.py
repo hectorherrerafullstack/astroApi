@@ -90,6 +90,8 @@ PLANET_NAMES_ES = {
     "uranus": "Urano",
     "neptune": "Neptuno",
     "pluto": "Plutón",
+    "north_node": "Nodo Norte",
+    "south_node": "Nodo Sur",
 }
 
 # Nombres de asteroides en español
@@ -306,6 +308,9 @@ def detect_sign_changes(monday: date, sunday: date) -> list:
     # Lilith
     for name, pid in LILITH.items():
         all_bodies.append((name, LILITH_NAMES_ES.get(name, name), pid))
+
+    # Nodo Norte
+    all_bodies.append(("north_node", PLANET_NAMES_ES["north_node"], swe.TRUE_NODE))
 
     for name, name_es, planet_id in all_bodies:
         # Posición al inicio de la semana (Lunes 00:00 UTC)
@@ -532,7 +537,8 @@ def get_planets_positions(monday: date) -> dict:
     result = {
         "planets": {},
         "asteroids": {},
-        "lilith": {}
+        "lilith": {},
+        "nodes": {}
     }
     
     # TODOS los planetas (incluido Sol y Luna)
@@ -564,6 +570,25 @@ def get_planets_positions(monday: date) -> dict:
             "degree": round(pos["degree"], 1),
             "retrograde": pos["retrograde"]
         }
+    
+    # Nodos Lunares
+    nn_pos = get_planet_position(jd_ut, swe.TRUE_NODE)
+    result["nodes"]["north_node"] = {
+        "node_es": PLANET_NAMES_ES["north_node"],
+        "sign": nn_pos["sign"],
+        "degree": round(nn_pos["degree"], 1),
+        "retrograde": nn_pos["retrograde"]
+    }
+    
+    # El Nodo Sur es siempre opuesto al Nodo Norte (180 grados de diferencia)
+    sn_lon = (nn_pos["longitude"] + 180.0) % 360.0
+    sn_sign_idx = int(sn_lon // 30)
+    result["nodes"]["south_node"] = {
+        "node_es": PLANET_NAMES_ES["south_node"],
+        "sign": SIGNS_ES[sn_sign_idx],
+        "degree": round(sn_lon % 30, 1),
+        "retrograde": nn_pos["retrograde"]
+    }
     
     return result
 
