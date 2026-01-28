@@ -127,17 +127,34 @@ def transits_view(request):
         return HttpResponseBadRequest("Use GET request.")
     
     date_str = request.GET.get("date")
+    # Admitimos 'time' (genérico) o 'birth_time' (si viene del frontend de carta natal)
+    time_str = request.GET.get("time") or request.GET.get("birth_time")
     timezone = request.GET.get("timezone", "UTC")
     
     force_utc = False
     
     if date_str:
         try:
-            target_date = datetime.strptime(date_str, "%Y-%m-%d")
-            # Si es HOY, usar la hora actual UTC
-            if target_date.date() == datetime.utcnow().date():
-                target_date = datetime.utcnow()
-                force_utc = True
+            # Parse date
+            dt_part = datetime.strptime(date_str, "%Y-%m-%d")
+            
+            # Parse time if provided, else default to 00:00:00
+            if time_str:
+                try:
+                    # Intenta formatos completos y cortos
+                    if len(time_str.split(":")) == 2:
+                        t_part = datetime.strptime(time_str, "%H:%M").time()
+                    else:
+                        t_part = datetime.strptime(time_str, "%H:%M:%S").time()
+                except ValueError:
+                    return HttpResponseBadRequest("Invalid time/birth_time format. Use HH:MM or HH:MM:SS.")
+            else:
+                t_part = datetime.min.time() # 00:00:00
+            
+            target_date = datetime.combine(dt_part.date(), t_part)
+            
+            # NOTA: Ya no forzamos UTC si es hoy, respetamos la fecha/hora pedida.
+            
         except ValueError:
             return HttpResponseBadRequest("Invalid date format. Use YYYY-MM-DD.")
     else:
