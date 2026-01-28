@@ -20,7 +20,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from .services import compute_chart, get_important_transits, calculate_eclipses
+from .services import compute_chart, get_important_transits, calculate_eclipses, fmt_zodiac
 from .weekly_climate_service import calculate_weekly_climate
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data, get_next_moon_ingress, get_moon_realtime
 from .weekly_climate_service import calculate_weekly_climate
@@ -93,8 +93,27 @@ def planet_transits_view(request):
             "longitude": payload["longitude"]
         }
         
+        # Customization per user request:
+        # 1. Remove houses, Ascendant, MC
+        if "houses" in result:
+            del result["houses"]
+            
+        # 2. Add South Node (Calculated from True Node)
+        if "true_node" in result["planets"]:
+            tn_val = result["planets"]["true_node"]["value"]
+            tn_speed = result["planets"]["true_node"]["speed"]
+            sn_val = (tn_val + 180.0) % 360.0
+            
+            result["planets"]["south_node"] = {
+                "value": sn_val,
+                "speed": tn_speed, # Same speed as North Node
+                "retrograde": result["planets"]["true_node"]["retrograde"],
+                "formatted": fmt_zodiac(sn_val) + (" ℞" if tn_speed < 0 else "")
+            }
+
     except Exception as e:
         return HttpResponseBadRequest(f"Calculation error: {str(e)}")
+
 
     resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
     resp["X-Source-Code"] = REPO_URL
