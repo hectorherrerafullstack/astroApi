@@ -62,6 +62,46 @@ def compute_chart_view(request):
     return resp
 
 
+def planet_transits_view(request):
+    """
+    POST /api/planet-transits/
+    
+    Acts exactly like /api/compute/, but includes request context in response.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("Use POST with JSON payload.")
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON.")
+
+    # Validate required fields
+    required_fields = ["datetime", "timezone", "latitude", "longitude", "house_system", "topocentric_moon_only"]
+    for field in required_fields:
+        if field not in payload:
+            return HttpResponseBadRequest(f"Missing required field: {field}")
+
+    try:
+        # Calculate chart
+        result = compute_chart(payload, settings.SE_EPHE_PATH)
+        
+        # Inject context directly into the response root
+        result["request_datetime"] = payload["datetime"]
+        result["request_timezone"] = payload["timezone"]
+        result["request_location"] = {
+            "latitude": payload["latitude"],
+            "longitude": payload["longitude"]
+        }
+        
+    except Exception as e:
+        return HttpResponseBadRequest(f"Calculation error: {str(e)}")
+
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
+
+
 def daily_horoscope_view(request):
     """
     POST /api/horoscope/daily/
