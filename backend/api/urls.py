@@ -28,5 +28,6 @@ urlpatterns = [
     path("daily-positions/", daily_planetary_positions_view, name="daily_planetary_positions"),
     path("monthly-transits/<int:month>/<int:year>/", monthly_transits_view, name="monthly_transits"),
     path("eclipses/", eclipses_view, name="eclipses"),
+    path('astrocartography/mundane/', mundane_astrocartography_view, name='mundane-astrocartography'),
     path("cache/stats/", cache_stats_view, name="cache_stats"),
 ]

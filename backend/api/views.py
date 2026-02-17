@@ -533,3 +533,43 @@ def eclipses_view(request):
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
     return resp
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def mundane_astrocartography_view(request):
+    """
+    POST /api/astrocartography/mundane/
+    
+    Payload:
+    {
+        "datetime": "YYYY-MM-DDTHH:MM:SS",
+        "lat": 0.0,
+        "lng": 0.0,
+        "targets": [
+            {"name": "Madrid", "lat": 40.41, "lng": -3.70},
+            ...
+        ]
+    }
+    
+    Retorna lista de planetas angulares (Mundanos y Zodiacales) con Parans.
+    """
+    from .astrocartography_service import process_astrocartography_mundane
+    
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON.")
+        
+    required = ["datetime", "lat", "lng", "targets"]
+    if not all(k in payload for k in required):
+        return HttpResponseBadRequest(f"Missing required fields. Need: {required}")
+        
+    try:
+        result = process_astrocartography_mundane(payload)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+        
+    resp = JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+    resp["X-Source-Code"] = REPO_URL
+    resp["X-License"] = "AGPL-3.0-only"
+    return resp
