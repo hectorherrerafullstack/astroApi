@@ -1,0 +1,100 @@
+{
+  "jd_ut": 2461069.031253394,
+  "planets": {
+    "sun": {
+      "value": 308.60292911993093,
+      "speed": 1.0158469060664084,
+      "retrograde": false,
+      "formatted": "Acuario 8° 36' 11\""
+    },
+    "moon": {
+      "value": 69.52336112678718,
+      "speed": 14.484082157295285,
+      "retrograde": false,
+      "formatted": "Géminis 9° 31' 24\""
+    },
+    "mercury": {
+      "value": 313.38269917225153,
+      "speed": 1.743384854233086,
+      "retrograde": false,
+      "formatted": "Acuario 13° 22' 58\""
+    },
+    "venus": {
+      "value": 313.8237247663677,
+      "speed": 1.2555440059155718,
+      "retrograde": false,
+      "formatted": "Acuario 13° 49' 25\""
+    },
+    "mars": {
+      "value": 304.0149553479541,
+      "speed": 0.7814469360826818,
+      "retrograde": false,
+      "formatted": "Acuario 4° 0' 54\""
+    },
+    "jupiter": {
+      "value": 107.75885507473909,
+      "speed": -0.1180806497546427,
+      "retrograde": true,
+      "formatted": "Cáncer 17° 45' 32\" ℞"
+    },
+    "saturn": {
+      "value": 358.3052291016955,
+      "speed": 0.0948947062611661,
+      "retrograde": false,
+      "formatted": "Piscis 28° 18' 19\""
+    },
+    "uranus": {
+      "value": 57.47843524617626,
+      "speed": -0.005694201646334148,
+      "retrograde": true,
+      "formatted": "Tauro 27° 28' 42\" ℞"
+    },
+    "neptune": {
+      "value": 0.04645934031359284,
+      "speed": 0.02622391922333106,
+      "retrograde": false,
+      "formatted": "Aries 0° 2' 47\""
+    },
+    "pluto": {
+      "value": 303.5863288235635,
+      "speed": 0.03198205973615471,
+      "retrograde": false,
+      "formatted": "Acuario 3° 35' 11\""
+    },
+    "chiron": {
+      "value": 22.911166240808527,
+      "speed": 0.023833916504101795,
+      "retrograde": false,
+      "formatted": "Aries 22° 54' 40\""
+    },
+    "true_node": {
+      "value": 339.35456751431417,
+      "speed": -0.05525343042364535,
+      "retrograde": true,
+      "formatted": "Piscis 9° 21' 16\" ℞"
+    },
+    "lilith": {
+      "value": 244.33963877142824,
+      "speed": 0.112095166436746,
+      "retrograde": false,
+      "formatted": "Sagitario 4° 20' 23\""
+    },
+    "south_node": {
+      "value": 159.3545675143141,
+      "speed": -0.05525343042364535,
+      "retrograde": true,
+      "formatted": "Virgo 9° 21' 16\" ℞"
+    }
+  },
+  "meta": {
+    "ephe_path": "C:\\Users\\hecto\\Desktop\\escritorio\\astroapi\\se_data",
+    "flags": 258,
+    "house_system": "P"
+  },
+  "request_datetime": "2026-01-28T13:45:00",
+  "request_timezone": "Europe/Madrid",
+  "request_location": {
+    "latitude": 40.4168,
+    "longitude": -3.7038
+  }
+}

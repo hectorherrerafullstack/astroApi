@@ -111,20 +111,20 @@ def get_moon_realtime(dt: datetime, tzname: str = "UTC") -> dict:
     # Calcular fase lunar
     angle = (moon_lon - sun_lon) % 360
     
-    # Definir ventanas precisas (±10 grados para fases principales)
-    if angle < 10 or angle > 350:
+    # Definir ventanas precisas (±5 grados para fases principales)
+    if angle < 5 or angle > 355:
         phase = "Luna Nueva"
-    elif angle < 80:
+    elif angle < 85:
         phase = "Luna Creciente"  # Waxing Crescent
-    elif angle < 100:
+    elif angle < 95:
         phase = "Cuarto Creciente"
-    elif angle < 170:
+    elif angle < 175:
         phase = "Gibosa Creciente"  # Waxing Gibbous
-    elif angle < 190:
+    elif angle < 185:
         phase = "Luna Llena"
-    elif angle < 260:
+    elif angle < 265:
         phase = "Gibosa Menguante"  # Waning Gibbous
-    elif angle < 280:
+    elif angle < 275:
         phase = "Cuarto Menguante"
     else:
         phase = "Luna Menguante"    # Waning Crescent

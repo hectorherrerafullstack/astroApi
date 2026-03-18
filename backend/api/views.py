@@ -30,8 +30,8 @@ REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro
 def health(request):
     resp = JsonResponse({
         "status": "ok",
-        "version": "2026-01-21-v4",  # Para verificar deploy
-        "fix": "moon_phase_precision_illumination"
+        "version": "2026-01-21-v5",  # Para verificar deploy
+        "fix": "moon_phase_5deg_precision"
     })
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"
