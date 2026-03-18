@@ -112,13 +112,26 @@ ASPECTS = [
     {"name": "trine", "name_es": "Trígono", "angle": 120, "orb": 7},
 ]
 
-# Fases lunares principales (las que son "titular")
-MAIN_LUNAR_PHASES = {
-    "new_moon": {"name": "Luna Nueva", "angle_min": 0, "angle_max": 15, "is_highlight": True},
-    "first_quarter": {"name": "Cuarto Creciente", "angle_min": 82, "angle_max": 98, "is_highlight": False},
-    "full_moon": {"name": "Luna Llena", "angle_min": 172, "angle_max": 188, "is_highlight": True},
-    "last_quarter": {"name": "Cuarto Menguante", "angle_min": 262, "angle_max": 278, "is_highlight": False},
-}
+# (Eliminado MAIN_LUNAR_PHASES en favor de lógica unificada)
+
+def get_lunar_phase_name_and_highlight(angle: float) -> tuple:
+    """Retorna (nombre_fase, es_destacada) usando la misma regla estricta de ±5 grados."""
+    if angle < 5 or angle > 355:
+        return "Luna Nueva", True
+    elif angle < 85:
+        return "Luna Creciente", False
+    elif angle < 95:
+        return "Cuarto Creciente", False
+    elif angle < 175:
+        return "Gibosa Creciente", False
+    elif angle < 185:
+        return "Luna Llena", True
+    elif angle < 265:
+        return "Gibosa Menguante", False
+    elif angle < 275:
+        return "Cuarto Menguante", False
+    else:
+        return "Luna Menguante", False
 
 
 def get_week_dates(start_date: date = None) -> tuple:
@@ -189,62 +202,71 @@ def get_planet_position(jd_ut: float, planet_id: int) -> dict:
 
 def get_lunar_phase_events(monday: date, sunday: date) -> dict:
     """
-    Detecta la fase lunar principal de la semana.
-    Prioriza Luna Nueva y Luna Llena como destacadas.
+    Detecta la fase lunar principal de la semana asegurando no omitirla aunque ocurra rápido.
+    Prioriza Luna Nueva y Luna Llena.
     """
     main_event = None
     
+    # Evaluar en saltos cortos para detectar cruce de fases exactas (0, 90, 180, 270)
     current = monday
+    
+    dt_prev = datetime(current.year, current.month, current.day, 0, 0, 0)
+    jd_ut_prev = to_jd_ut(dt_prev)
+    sun_pos_prev = get_planet_position(jd_ut_prev, swe.SUN)
+    moon_pos_prev = get_planet_position(jd_ut_prev, swe.MOON)
+    angle_prev = (moon_pos_prev["longitude"] - sun_pos_prev["longitude"]) % 360
+    quad_prev = int(angle_prev // 90)
+    
+    phase_inicio, _ = get_lunar_phase_name_and_highlight(angle_prev)
+    sign_inicio = moon_pos_prev["sign"]
+    
     while current <= sunday:
-        dt = datetime(current.year, current.month, current.day, 12, 0, 0)
-        jd_ut = to_jd_ut(dt)
+        current += timedelta(days=1)
+        dt_next = datetime(current.year, current.month, current.day, 0, 0, 0)
+        jd_ut_next = to_jd_ut(dt_next)
         
-        sun_pos = get_planet_position(jd_ut, swe.SUN)
-        moon_pos = get_planet_position(jd_ut, swe.MOON)
+        sun_pos_next = get_planet_position(jd_ut_next, swe.SUN)
+        moon_pos_next = get_planet_position(jd_ut_next, swe.MOON)
+        angle_next = (moon_pos_next["longitude"] - sun_pos_next["longitude"]) % 360
+        quad_next = int(angle_next // 90)
         
-        # Ángulo Luna-Sol
-        angle = (moon_pos["longitude"] - sun_pos["longitude"]) % 360
-        
-        for phase_key, phase_data in MAIN_LUNAR_PHASES.items():
-            if phase_data["angle_min"] <= angle <= phase_data["angle_max"]:
+        if quad_next != quad_prev and not (quad_prev == 0 and quad_next == 3): # Evitar error de retroceso matematico
+            # Hubo un cruce progresivo! 
+            phase_name = ""
+            is_highlight = False
+            if quad_prev == 3 and quad_next == 0:
+                phase_name = "Luna Nueva"
+                is_highlight = True
+            elif quad_prev == 0 and quad_next == 1:
+                phase_name = "Cuarto Creciente"
+            elif quad_prev == 1 and quad_next == 2:
+                phase_name = "Luna Llena"
+                is_highlight = True
+            elif quad_prev == 2 and quad_next == 3:
+                phase_name = "Cuarto Menguante"
+                
+            if phase_name:
                 event = {
-                    "main_event": phase_data["name"],
+                    "main_event": phase_name,
                     "date": current.strftime("%Y-%m-%d"),
-                    "sign": moon_pos["sign"],
-                    "is_highlight": phase_data["is_highlight"]
+                    "sign": moon_pos_next["sign"],
+                    "is_highlight": is_highlight
                 }
-                # Priorizar Luna Nueva y Luna Llena
-                if phase_data["is_highlight"]:
+                if is_highlight:
                     return event
                 elif main_event is None:
                     main_event = event
+                    
+        quad_prev = quad_next
         
-        current += timedelta(days=1)
-    
-    # Si no hay evento principal, retornar la fase del inicio de semana
     if main_event is None:
-        dt = datetime(monday.year, monday.month, monday.day, 12, 0, 0)
-        jd_ut = to_jd_ut(dt)
-        sun_pos = get_planet_position(jd_ut, swe.SUN)
-        moon_pos = get_planet_position(jd_ut, swe.MOON)
-        angle = (moon_pos["longitude"] - sun_pos["longitude"]) % 360
-        
-        if angle < 90:
-            phase_name = "Luna Creciente"
-        elif angle < 180:
-            phase_name = "Luna Gibosa Creciente"
-        elif angle < 270:
-            phase_name = "Luna Gibosa Menguante"
-        else:
-            phase_name = "Luna Menguante"
-        
         main_event = {
-            "main_event": phase_name,
+            "main_event": phase_inicio,
             "date": monday.strftime("%Y-%m-%d"),
-            "sign": moon_pos["sign"],
+            "sign": sign_inicio,
             "is_highlight": False
         }
-    
+        
     return main_event
 
 
@@ -641,23 +663,7 @@ def detect_moon_sign_changes(monday: date, sunday: date) -> list:
                 angle = (pos["longitude"] - sun_pos["longitude"]) % 360
                 
                 # Determinar nombre de fase
-                phase_name = ""
-                # Primero chequear fases principales (exactas)
-                for p_data in MAIN_LUNAR_PHASES.values():
-                    if p_data["angle_min"] <= angle <= p_data["angle_max"]:
-                        phase_name = p_data["name"]
-                        break
-                
-                # Si no es fase principal, usar cuadrantes
-                if not phase_name:
-                    if angle < 90:
-                        phase_name = "Luna Creciente"
-                    elif angle < 180:
-                        phase_name = "Luna Gibosa Creciente"
-                    elif angle < 270:
-                        phase_name = "Luna Gibosa Menguante"
-                    else:
-                        phase_name = "Luna Menguante"
+                phase_name, _ = get_lunar_phase_name_and_highlight(angle)
 
             # Hubo cambio de signo
             moon_changes.append({
