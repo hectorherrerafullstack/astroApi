@@ -20,18 +20,16 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from .services import compute_chart, get_important_transits, calculate_eclipses, fmt_zodiac
-from .weekly_climate_service import calculate_weekly_climate
+from .services import compute_chart, get_important_transits, calculate_eclipses, fmt_zodiac, calculate_weekly_climate
 from .horoscope_service import generate_daily_horoscope_personal, calculate_transits, find_house_for_planet, get_daily_planetary_data, get_next_moon_ingress, get_moon_realtime
-from .weekly_climate_service import calculate_weekly_climate
 
 REPO_URL = os.environ.get("SOURCE_REPO_URL", "https://github.com/tuusuario/astro-backend")
 
 def health(request):
     resp = JsonResponse({
         "status": "ok",
-        "version": "2026-01-21-v6",  # Para verificar deploy
-        "fix": "weekly_climate_phase_precision"
+        "version": "2026-01-21-v4",  # Para verificar deploy
+        "fix": "moon_phase_precision_illumination"
     })
     resp["X-Source-Code"] = REPO_URL
     resp["X-License"] = "AGPL-3.0-only"

@@ -477,3 +477,330 @@ def calculate_eclipses(year: int):
     # Ordenar por fecha
     eclipses.sort(key=lambda x: x["datetime"])
     return eclipses
+
+
+# ==============================================================================
+# LÓGICA DEL CLIMA SEMANAL (Movido desde weekly_climate_service.py)
+# ==============================================================================
+FAST_PLANETS = ["mercury", "venus", "mars"]
+HEAVY_PLANETS = ["saturn", "pluto"]
+OUTER_PLANETS = ["jupiter", "uranus", "neptune"]
+
+SIGNS_ES = ["Aries", "Tauro", "Géminis", "Cáncer", "Leo", "Virgo",
+            "Libra", "Escorpio", "Sagitario", "Capricornio", "Acuario", "Piscis"]
+
+ASPECTS = [
+    {"name": "conjunction", "name_es": "Conjunción", "angle": 0, "orb": 8},
+    {"name": "opposition", "name_es": "Oposición", "angle": 180, "orb": 8},
+    {"name": "square", "name_es": "Cuadratura", "angle": 90, "orb": 7},
+    {"name": "trine", "name_es": "Trígono", "angle": 120, "orb": 7},
+]
+
+def get_lunar_phase_name_and_highlight(angle: float) -> tuple:
+    if angle < 5 or angle > 355:
+        return "Luna Nueva", True
+    elif angle < 85:
+        return "Luna Creciente", False
+    elif angle < 95:
+        return "Cuarto Creciente", False
+    elif angle < 175:
+        return "Gibosa Creciente", False
+    elif angle < 185:
+        return "Luna Llena", True
+    elif angle < 265:
+        return "Gibosa Menguante", False
+    elif angle < 275:
+        return "Cuarto Menguante", False
+    else:
+        return "Luna Menguante", False
+
+from datetime import date as dt_date, timedelta as dt_timedelta
+
+def get_week_dates(start_date: dt_date = None) -> tuple:
+    if start_date is None:
+        start_date = dt_date.today()
+    days_since_monday = start_date.weekday()
+    monday = start_date - dt_timedelta(days=days_since_monday)
+    return monday, monday + dt_timedelta(days=6)
+
+def to_jd_ut_climate(dt: datetime, tzname: str = "UTC") -> float:
+    zone = tz.gettz(tzname)
+    if zone:
+        dt_local = dt.replace(tzinfo=zone)
+        dt_utc = dt_local.astimezone(tz.UTC)
+    else:
+        dt_utc = dt
+    jd_et, jd_ut = swe.utc_to_jd(
+        dt_utc.year, dt_utc.month, dt_utc.day,
+        dt_utc.hour, dt_utc.minute, dt_utc.second, swe.GREG_CAL
+    )
+    return jd_ut
+
+def get_planet_position_climate(jd_ut: float, planet_id: int) -> dict:
+    try:
+        lonlat, ret = swe.calc_ut(jd_ut, planet_id, FLAGS)
+        lon = lonlat[0] % 360.0
+        return {
+            "longitude": lon, "sign_index": int(lon // 30),
+            "sign": SIGNS_ES[int(lon // 30)], "degree": lon % 30,
+            "speed": lonlat[3], "retrograde": lonlat[3] < 0, "error": None
+        }
+    except Exception as e:
+        return {"longitude": 0.0, "sign_index": 0, "sign": "Error", "degree": 0.0, "speed": 0.0, "retrograde": False, "error": str(e)}
+
+def get_lunar_phase_events(monday: dt_date, sunday: dt_date) -> dict:
+    main_event = None
+    current = monday
+    dt_prev = datetime(current.year, current.month, current.day, 0, 0, 0)
+    jd_ut_prev = to_jd_ut_climate(dt_prev)
+    sun_pos_prev = get_planet_position_climate(jd_ut_prev, swe.SUN)
+    moon_pos_prev = get_planet_position_climate(jd_ut_prev, swe.MOON)
+    angle_prev = (moon_pos_prev["longitude"] - sun_pos_prev["longitude"]) % 360
+    quad_prev = int(angle_prev // 90)
+    phase_inicio, _ = get_lunar_phase_name_and_highlight(angle_prev)
+    
+    while current <= sunday:
+        current += dt_timedelta(days=1)
+        dt_next = datetime(current.year, current.month, current.day, 0, 0, 0)
+        jd_ut_next = to_jd_ut_climate(dt_next)
+        sun_pos_next = get_planet_position_climate(jd_ut_next, swe.SUN)
+        moon_pos_next = get_planet_position_climate(jd_ut_next, swe.MOON)
+        angle_next = (moon_pos_next["longitude"] - sun_pos_next["longitude"]) % 360
+        quad_next = int(angle_next // 90)
+        
+        if quad_next != quad_prev and not (quad_prev == 0 and quad_next == 3):
+            phase_name = ""
+            is_highlight = False
+            if quad_prev == 3 and quad_next == 0:
+                phase_name = "Luna Nueva"
+                is_highlight = True
+            elif quad_prev == 0 and quad_next == 1:
+                phase_name = "Cuarto Creciente"
+            elif quad_prev == 1 and quad_next == 2:
+                phase_name = "Luna Llena"
+                is_highlight = True
+            elif quad_prev == 2 and quad_next == 3:
+                phase_name = "Cuarto Menguante"
+            if phase_name:
+                event = {
+                    "main_event": phase_name,
+                    "date": current.strftime("%Y-%m-%d"),
+                    "sign": moon_pos_next["sign"],
+                    "is_highlight": is_highlight
+                }
+                if is_highlight:
+                    return event
+                elif main_event is None:
+                    main_event = event
+        quad_prev = quad_next
+        
+    if main_event is None:
+        main_event = {"main_event": phase_inicio, "date": monday.strftime("%Y-%m-%d"), "sign": moon_pos_prev["sign"], "is_highlight": False}
+    return main_event
+
+def find_exact_ingress_time(jd_start: float, jd_end: float, planet_id: int, from_sign_index: int) -> tuple:
+    TOLERANCE = 0.000694
+    start = jd_start
+    end = jd_end
+    while (end - start) > TOLERANCE:
+        mid = (start + end) / 2
+        pos = get_planet_position_climate(mid, planet_id)
+        if pos["sign_index"] == from_sign_index:
+            start = mid
+        else:
+            end = mid
+    final_jd = end
+    y, m, d, h, mi, s = swe.jdut1_to_utc(final_jd, swe.GREG_CAL)
+    dt_change = datetime(y, m, d, int(h), int(mi), int(s))
+    final_pos = get_planet_position_climate(final_jd, planet_id)
+    return dt_change, final_pos["sign"]
+
+def detect_sign_changes_climate(monday: dt_date, sunday: dt_date) -> list:
+    sign_changes = []
+    
+    all_bodies = []
+    for name, pid in PLANETS.items():
+        all_bodies.append((name, PLANET_NAMES_ES.get(name, name.capitalize()), pid))
+    
+    for name, name_es, planet_id in all_bodies:
+        current_dt = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
+        current_jd = to_jd_ut_climate(current_dt)
+        start_pos = get_planet_position_climate(current_jd, planet_id)
+        current_sign_idx = start_pos["sign_index"]
+        
+        for i in range(1, 8):
+            next_dt = current_dt + dt_timedelta(days=i)
+            next_jd = to_jd_ut_climate(next_dt)
+            next_pos = get_planet_position_climate(next_jd, planet_id)
+            if next_pos["sign_index"] != current_sign_idx:
+                prev_jd = to_jd_ut_climate(next_dt - dt_timedelta(days=1))
+                exact_dt, to_sign_str = find_exact_ingress_time(prev_jd, next_jd, planet_id, current_sign_idx)
+                sign_changes.append({
+                    "planet": name, "planet_es": name_es or name.capitalize(),
+                    "from_sign": SIGNS_ES[current_sign_idx], "to_sign": to_sign_str,
+                    "date": exact_dt.strftime("%Y-%m-%d"), "time_utc": exact_dt.strftime("%H:%M"),
+                    "datetime_utc": exact_dt.isoformat()
+                })
+                current_sign_idx = next_pos["sign_index"]
+    sign_changes.sort(key=lambda x: x["datetime_utc"])
+    return sign_changes
+
+def detect_retrograde_changes_climate(monday: dt_date, sunday: dt_date) -> list:
+    retrograde_changes = []
+    planets_to_check = FAST_PLANETS + OUTER_PLANETS + HEAVY_PLANETS
+    for planet_name in planets_to_check:
+        if planet_name == "sun": continue
+        planet_id = PLANETS[planet_name]
+        dt_start = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
+        jd_start = to_jd_ut_climate(dt_start)
+        start_pos = get_planet_position_climate(jd_start, planet_id)
+        was_retro = start_pos["retrograde"]
+        
+        current = monday + dt_timedelta(days=1)
+        while current <= sunday:
+            dt = datetime(current.year, current.month, current.day, 12, 0, 0)
+            pos = get_planet_position_climate(to_jd_ut_climate(dt), planet_id)
+            if pos["retrograde"] != was_retro:
+                retrograde_changes.append({
+                    "planet": planet_name, "planet_es": PLANET_NAMES_ES.get(planet_name, planet_name.capitalize()),
+                    "change": "retrograde" if pos["retrograde"] else "direct",
+                    "date": current.strftime("%Y-%m-%d"), "sign": pos["sign"]
+                })
+                was_retro = pos["retrograde"]
+            current += dt_timedelta(days=1)
+    return retrograde_changes
+
+def angular_distance(lon1: float, lon2: float) -> float:
+    diff = abs(lon1 - lon2)
+    if diff > 180: diff = 360 - diff
+    return diff
+
+def find_exact_aspect_date(monday: dt_date, sunday: dt_date, p1: str, p2: str, target_angle: float) -> str:
+    min_diff = 360
+    exact_date = monday
+    current = monday
+    while current <= sunday:
+        dt = datetime(current.year, current.month, current.day, 12, 0, 0)
+        jd_ut = to_jd_ut_climate(dt)
+        pos1 = get_planet_position_climate(jd_ut, PLANETS[p1])
+        pos2 = get_planet_position_climate(jd_ut, PLANETS[p2])
+        diff = abs(angular_distance(pos1["longitude"], pos2["longitude"]) - target_angle)
+        if diff < min_diff:
+            min_diff = diff
+            exact_date = current
+        current += dt_timedelta(days=1)
+    return exact_date.strftime("%Y-%m-%d")
+
+def get_major_aspects_climate(monday: dt_date, sunday: dt_date) -> list:
+    all_aspects = []
+    mid_week = monday + dt_timedelta(days=3)
+    dt = datetime(mid_week.year, mid_week.month, mid_week.day, 12, 0, 0)
+    jd_ut = to_jd_ut_climate(dt)
+    
+    positions = {}
+    for planet_name, planet_id in PLANETS.items():
+        if planet_name != "moon":
+            positions[planet_name] = get_planet_position_climate(jd_ut, planet_id)
+    
+    planet_list = list(positions.keys())
+    for i in range(len(planet_list)):
+        for j in range(i + 1, len(planet_list)):
+            p1, p2 = planet_list[i], planet_list[j]
+            if p1 == "sun" or p2 == "sun" or positions[p1].get("error") or positions[p2].get("error"):
+                continue
+            lon1, lon2 = positions[p1]["longitude"], positions[p2]["longitude"]
+            distance = angular_distance(lon1, lon2)
+            
+            for asp in ASPECTS:
+                diff = abs(distance - asp["angle"])
+                if diff <= asp["orb"]:
+                    priority = 10
+                    if p1 in FAST_PLANETS and p2 in FAST_PLANETS: priority = 1
+                    elif (p1 in FAST_PLANETS and p2 in HEAVY_PLANETS) or (p2 in FAST_PLANETS and p1 in HEAVY_PLANETS):
+                        if diff < 3: priority = 2
+                        else: continue
+                    elif p1 in OUTER_PLANETS or p2 in OUTER_PLANETS:
+                        if diff < 1: priority = 3
+                        else: continue
+                    else: continue
+                    
+                    exact_date = find_exact_aspect_date(monday, sunday, p1, p2, asp["angle"])
+                    all_aspects.append({
+                        "planet_a": p1, "planet_a_es": PLANET_NAMES_ES.get(p1, p1.capitalize()),
+                        "planet_b": p2, "planet_b_es": PLANET_NAMES_ES.get(p2, p2.capitalize()),
+                        "aspect": asp["name"], "aspect_es": asp["name_es"],
+                        "exact_date": exact_date, "orb": round(diff, 2), "priority": priority
+                    })
+    all_aspects.sort(key=lambda x: (x["priority"], x["orb"]))
+    return all_aspects[:4]
+
+def get_planets_positions_climate(monday: dt_date) -> dict:
+    dt = datetime(monday.year, monday.month, monday.day, 12, 0, 0)
+    jd_ut = to_jd_ut_climate(dt)
+    result = {"planets": {}, "asteroids": {}, "lilith": {}, "nodes": {}}
+    
+    REAL_PLANETS = {"sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"}
+    
+    for pt_name, pt_id in PLANETS.items():
+        if pt_name in REAL_PLANETS:
+            pos = get_planet_position_climate(jd_ut, pt_id)
+            result["planets"][pt_name] = {"planet_es": PLANET_NAMES_ES.get(pt_name, pt_name.capitalize()), "sign": pos["sign"], "degree": round(pos["degree"], 1), "retrograde": pos["retrograde"]}
+    
+    chiron_pos = get_planet_position_climate(jd_ut, swe.CHIRON)
+    result["asteroids"]["chiron"] = {"asteroid_es": "Quirón", "sign": chiron_pos["sign"], "degree": round(chiron_pos["degree"], 1), "retrograde": chiron_pos["retrograde"]}
+    
+    lilith_pos = get_planet_position_climate(jd_ut, swe.MEAN_APOG)
+    result["lilith"]["lilith"] = {"lilith_es": "Lilith", "sign": lilith_pos["sign"], "degree": round(lilith_pos["degree"], 1), "retrograde": lilith_pos["retrograde"]}
+    
+    nn_pos = get_planet_position_climate(jd_ut, swe.TRUE_NODE)
+    result["nodes"]["north_node"] = {"node_es": "Nodo Norte", "sign": nn_pos["sign"], "degree": round(nn_pos["degree"], 1), "retrograde": nn_pos["retrograde"]}
+    sn_lon = (nn_pos["longitude"] + 180.0) % 360.0
+    
+    result["nodes"]["south_node"] = {"node_es": "Nodo Sur", "sign": SIGNS_ES[int(sn_lon // 30)], "degree": round(sn_lon % 30, 1), "retrograde": nn_pos["retrograde"]}
+    return result
+
+def detect_moon_sign_changes_climate(monday: dt_date, sunday: dt_date) -> list:
+    moon_changes = []
+    current_dt = datetime(monday.year, monday.month, monday.day, 0, 0, 0)
+    end_dt = datetime(sunday.year, sunday.month, sunday.day, 23, 59, 59)
+    jd_ut = to_jd_ut_climate(current_dt)
+    start_pos = get_planet_position_climate(jd_ut, swe.MOON)
+    if start_pos.get("error"): return []
+    prev_sign_index = start_pos["sign_index"]
+    
+    while current_dt <= end_dt:
+        next_dt = current_dt + dt_timedelta(hours=1)
+        if next_dt > end_dt: break
+        jd_ut = to_jd_ut_climate(next_dt)
+        pos = get_planet_position_climate(jd_ut, swe.MOON)
+        if pos.get("error"):
+            current_dt = next_dt
+            continue
+        current_sign_index = pos["sign_index"]
+        if current_sign_index != prev_sign_index:
+            sun_pos = get_planet_position_climate(jd_ut, swe.SUN)
+            if sun_pos.get("error"):
+                 phase_name = "Desconocida"
+            else:
+                angle = (pos["longitude"] - sun_pos["longitude"]) % 360
+                phase_name, _ = get_lunar_phase_name_and_highlight(angle)
+            moon_changes.append({
+                "date": next_dt.strftime("%Y-%m-%d"), "time": next_dt.strftime("%H:%M"),
+                "datetime": next_dt.strftime("%Y-%m-%d %H:%M"), "entering_sign": pos["sign"],
+                "entering_sign_es": pos["sign"], "degree": 0.0, "from_sign": SIGNS_ES[prev_sign_index], "phase": phase_name
+            })
+            prev_sign_index = current_sign_index
+        current_dt = next_dt
+    return moon_changes
+
+def calculate_weekly_climate(start_date: dt_date = None) -> dict:
+    monday, sunday = get_week_dates(start_date)
+    return {
+        "week": {"start": monday.strftime("%Y-%m-%d"), "end": sunday.strftime("%Y-%m-%d")},
+        "lunar_phase": get_lunar_phase_events(monday, sunday),
+        "moon_sign_changes": detect_moon_sign_changes_climate(monday, sunday),
+        "sign_changes": detect_sign_changes_climate(monday, sunday),
+        "retrograde_changes": detect_retrograde_changes_climate(monday, sunday),
+        "major_aspects": get_major_aspects_climate(monday, sunday),
+        "planets_positions": get_planets_positions_climate(monday)
+    }
