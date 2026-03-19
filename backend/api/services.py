@@ -497,19 +497,19 @@ ASPECTS = [
 ]
 
 def get_lunar_phase_name_and_highlight(angle: float) -> tuple:
-    if angle < 5 or angle > 355:
+    if angle < 1 or angle > 359:
         return "Luna Nueva", True
-    elif angle < 85:
+    elif angle < 89:
         return "Luna Creciente", False
-    elif angle < 95:
+    elif angle < 91:
         return "Cuarto Creciente", False
-    elif angle < 175:
+    elif angle < 179:
         return "Gibosa Creciente", False
-    elif angle < 185:
+    elif angle < 181:
         return "Luna Llena", True
-    elif angle < 265:
+    elif angle < 269:
         return "Gibosa Menguante", False
-    elif angle < 275:
+    elif angle < 271:
         return "Cuarto Menguante", False
     else:
         return "Luna Menguante", False
@@ -548,6 +548,34 @@ def get_planet_position_climate(jd_ut: float, planet_id: int) -> dict:
     except Exception as e:
         return {"longitude": 0.0, "sign_index": 0, "sign": "Error", "degree": 0.0, "speed": 0.0, "retrograde": False, "error": str(e)}
 
+def find_exact_phase_time(jd_start: float, jd_end: float, target_angle: float) -> tuple:
+    TOLERANCE = 0.000694 # ~1 minute
+    start = jd_start
+    end = jd_end
+    for _ in range(25):
+        mid = (start + end) / 2
+        moon_pos = get_planet_position_climate(mid, swe.MOON)
+        sun_pos = get_planet_position_climate(mid, swe.SUN)
+        
+        angle = (moon_pos["longitude"] - sun_pos["longitude"]) % 360
+        diff = (angle - target_angle) % 360
+        if diff > 180:
+            diff -= 360
+            
+        if diff < 0:
+            start = mid
+        else:
+            end = mid
+            
+        if (end - start) < TOLERANCE:
+            break
+            
+    final_jd = (start + end) / 2
+    y, m, d, h, mi, s = swe.jdut1_to_utc(final_jd, swe.GREG_CAL)
+    dt_exact = datetime(y, m, d, int(h), int(mi), int(s))
+    final_pos = get_planet_position_climate(final_jd, swe.MOON)
+    return dt_exact, final_pos["sign"]
+
 def get_lunar_phase_events(monday: dt_date, sunday: dt_date) -> dict:
     main_event = None
     current = monday
@@ -571,21 +599,31 @@ def get_lunar_phase_events(monday: dt_date, sunday: dt_date) -> dict:
         if quad_next != quad_prev and not (quad_prev == 0 and quad_next == 3):
             phase_name = ""
             is_highlight = False
+            target_angle = 0
+            
             if quad_prev == 3 and quad_next == 0:
                 phase_name = "Luna Nueva"
                 is_highlight = True
+                target_angle = 0
             elif quad_prev == 0 and quad_next == 1:
                 phase_name = "Cuarto Creciente"
+                target_angle = 90
             elif quad_prev == 1 and quad_next == 2:
                 phase_name = "Luna Llena"
                 is_highlight = True
+                target_angle = 180
             elif quad_prev == 2 and quad_next == 3:
                 phase_name = "Cuarto Menguante"
+                target_angle = 270
+                
             if phase_name:
+                jd_prev = to_jd_ut_climate(dt_next - dt_timedelta(days=1))
+                exact_dt, exact_sign = find_exact_phase_time(jd_prev, jd_ut_next, target_angle)
+                
                 event = {
                     "main_event": phase_name,
-                    "date": current.strftime("%Y-%m-%d"),
-                    "sign": moon_pos_next["sign"],
+                    "date": exact_dt.strftime("%Y-%m-%d"),
+                    "sign": exact_sign,
                     "is_highlight": is_highlight
                 }
                 if is_highlight:
